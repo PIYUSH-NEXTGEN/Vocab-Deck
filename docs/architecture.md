@@ -233,3 +233,109 @@ hardcoded; all labels use the selected deck's language codes.
 
 Checks: `npm run typecheck` (tsc --noEmit), `npm run lint` (eslint), `npm run build`
 (tsc + vite), `npm test` (vitest + @testing-library/react).
+
+## 7. Custom decks: creation, editing, import, export
+
+Custom decks are managed entirely in the browser. Nothing is sent to the server,
+and gameplay progress is never written to storage (it stays session-only in
+`SessionProvider`).
+
+### Management UI
+
+- **Library → New custom deck** (`/editor`): name, description, source/target
+  language codes and an entry editor (add / edit / remove rows; alternatives and
+  tags are comma-separated).
+- **Edit** (`/editor/:deckId`): loads a stored deck; the deck id and existing
+  entry ids are preserved when saving (documented id-stability rule).
+- **Delete**: requires an explicit confirm step ("Delete" → "Confirm delete").
+- **Built-in decks are read-only**: no edit/delete affordances, and requesting
+  `/editor/<built-in-id>` is refused with an explanation.
+
+### JSON file format (export → import round-trip)
+
+```json
+{
+  "version": 1,
+  "deck": {
+    "id": "custom-spanish-basics",
+    "name": "Spanish basics",
+    "description": "Everyday words",
+    "sourceLanguage": "es",
+    "targetLanguage": "en",
+    "entryCount": 2
+  },
+  "entries": [
+    { "id": "hola", "source": "hola", "target": "hello", "alternatives": ["hi"], "tags": ["greeting"] }
+  ],
+  "exportedAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+### CSV file format (comment header + table)
+
+```
+# deck: Spanish basics
+# description: Everyday words
+# sourceLanguage: es
+# targetLanguage: en
+source,target,alternatives,tags
+hola,hello,hi,greeting
+gracias,"thank you, thanks",,phrase
+```
+
+### Validation rules (shared by imports and the editor)
+
+Same rules as built-in decks (docs §3): non-empty source/target, unique entry ids
+and (source, target) pairs within a deck, valid language codes, deck id matching
+`^[a-z0-9][a-z0-9_-]{0,63}$`, at least one entry, `version: 1`. Additionally:
+
+- an import whose deck id already exists in the browser is rejected (no silent
+  overwrite — an existing deck can never be corrupted or replaced by an import);
+- an imported file is fully parsed and validated, then **previewed**, and only
+  stored after an explicit "Import deck" confirmation;
+- `deck.entryCount` in the file is informational — the entry list is authoritative.
+
+### Limitations
+
+- Custom decks live in this browser's `localStorage` only: no sync across
+  devices or browsers. Export JSON/CSV for a backup or to move a deck.
+- Browser storage is per-origin; clearing site data deletes custom decks.
+- CSV imports do not store entry ids — ids are derived from the source text
+  (same slugs as backend CSV decks), so a CSV round-trip keeps entries but may
+  produce different ids than the original JSON export.
+- Editing a deck does not rename its id; deleting and re-creating does.
+- There is no merge/dedup between a custom deck and a built-in deck.
+
+## 8. Design system (reference: `frontend/design.png`)
+
+Adapted from the reference styleguide (a technical/neo-brutalist UI kit) without
+reproducing its layout. Design DNA extracted:
+
+- **Palette**: cream paper `#F4F0E4` with a subtle dot grid, ivory surfaces
+  `#FFFFF0`, primary text `#333333`, secondary `#666666`, hairline `#CCCCCC`,
+  component borders `#141414`, bright green accent `#00FF00` (fills,
+  selection, focus halo) with a deep green `#006B00` for text on paper.
+- **Borders/elevation**: 2px solid black component outlines; blur-free offset
+  shadows (`2/4/6px 0 #141414`); hover lifts, press sinks. No soft shadows,
+  no gradients.
+- **Geometry**: square by default (radius 0-4px); no pill controls.
+- **Typography**: Space Mono (Latin display + UI) with Noto Sans Mono JP as the
+  Japanese fallback; uppercase tracked labels for metadata, natural casing and
+  full Unicode for vocabulary words; `--text-word` scale with `overflow-wrap`.
+- **States**: hover (lift), active (press), focus-visible (black outline + green
+  halo), disabled (dashed border, sunken), selected (green fill), correct
+  (green fill / left border), incorrect (brick red, shake).
+- **Micro-details used sparingly**: dot-grid page, dashed dividers, mono
+  bracket-style labels, chunky square progress bar.
+
+Where it is implemented: `src/styles/tokens.css` (all tokens), `global.css`
+(base), `components.css` (shell, buttons, panels, chips, deck cards, game
+screens, forms), `motion.css` (3D card flip + feedback keyframes +
+prefers-reduced-motion). Vocabulary card: bordered ivory surface, hard shadow,
+dotted language label, word at `--text-word`, translation on a green marker
+block; flip is CSS-only, reduced motion swaps faces instead of rotating.
+
+Limitations: webfonts load from Google Fonts (offline falls back to system
+mono); the flip's back face is absolutely positioned, so an unusually long
+translation can extend past the front face's height (reduced-motion mode flows
+naturally instead).

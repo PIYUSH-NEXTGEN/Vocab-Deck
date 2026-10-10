@@ -1,42 +1,52 @@
-/* Design tokens: warm paper neutrals, restrained accents, editorial typography.
-   No neon, no gradients, no decorative ornament. */
+/* Design tokens: technical-editorial / neo-brutalist system.
+   Cream paper + dot grid, hard black borders, blur-free offset shadows,
+   bright green accent, square corners, monospace typography.
+   Extracted from the reference styleguide and adapted for vocabulary study. */
 :root {
-  /* Paper + ink scale (warm neutrals) */
-  --paper: #faf7f1;
-  --paper-raised: #fffdf9;
-  --paper-sunken: #f2ede3;
-  --paper-inset: #ede6d9;
-  --ink: #211c16;
-  --ink-soft: #4d463c;
-  --ink-faint: #8a8175;
-  --hairline: #e5ddcf;
-  --hairline-strong: #cfc2ad;
+  /* Paper + ink */
+  --paper: #f4f0e4;          /* page: warm cream */
+  --paper-raised: #fffff0;   /* surfaces: ivory */
+  --paper-sunken: #eae4d3;   /* insets, disabled */
+  --paper-inset: #e0d9c6;    /* progress track */
+  --ink: #333333;            /* primary text */
+  --ink-soft: #666666;       /* secondary text */
+  --ink-faint: #8c8c8c;      /* tertiary text */
+  --ink-inverse: #fffff0;    /* text on dark fills */
 
-  /* Restrained accents */
-  --accent: #9a4a24;
-  --accent-strong: #7c3a1a;
-  --accent-soft: #f4e7dc;
-  --correct: #3f6b4f;
-  --correct-soft: #e4eee7;
-  --incorrect: #a23b32;
-  --incorrect-soft: #f6e5e2;
-  --focus-ring: #b3572c;
+  /* Borders: components vs hairlines */
+  --border: #141414;         /* component outline */
+  --border-hairline: #cccccc; /* dividers inside surfaces */
 
-  /* Editorial typography */
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    "Times New Roman", serif;
-  --font-body: "Avenir Next", "Segoe UI", system-ui, -apple-system, Roboto,
-    sans-serif;
-  --font-mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  /* Accent: bright green for fills/selection; deep green for text on paper */
+  --accent: #00ff00;
+  --accent-deep: #006b00;    /* links, active text on cream */
+  --accent-soft: #d9ffd9;    /* tinted surface */
+  --focus-ring: #00ff00;     /* keyboard focus halo */
 
-  --text-xs: 0.78rem;
-  --text-s: 0.88rem;
-  --text-m: 1rem;
-  --text-l: clamp(1.15rem, 1.05rem + 0.4vw, 1.3rem);
-  --text-xl: clamp(1.45rem, 1.3rem + 0.8vw, 1.8rem);
-  --text-2xl: clamp(1.9rem, 1.6rem + 1.4vw, 2.5rem);
+  /* Feedback */
+  --correct: #00913d;
+  --correct-soft: #d8f5e3;
+  --incorrect: #c8261b;
+  --incorrect-soft: #fbe3e1;
 
-  /* Deliberate spacing scale */
+  /* Typography: one mono family with a Japanese-capable fallback */
+  --font-mono: "Space Mono", "Noto Sans Mono JP", ui-monospace, "Cascadia Mono",
+    Consolas, monospace;
+  --font-display: var(--font-mono);
+
+  --text-xs: 0.72rem;   /* compact labels (uppercase, tracked) */
+  --text-s: 0.82rem;
+  --text-m: 0.95rem;    /* base UI text */
+  --text-l: 1.12rem;
+  --text-xl: 1.5rem;
+  --text-2xl: clamp(1.7rem, 1.4rem + 1.2vw, 2.4rem);
+  --text-word: clamp(1.6rem, 1.3rem + 1.6vw, 2.3rem); /* vocabulary words */
+
+  --leading-tight: 1.15;
+  --leading-normal: 1.55;
+  --tracking-label: 0.09em;
+
+  /* Spacing scale (4px base) */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -46,15 +56,23 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
-  --radius-s: 4px;
-  --radius-m: 8px;
-  --radius-l: 14px;
+  /* Geometry: deliberately square */
+  --radius-s: 0px;
+  --radius-m: 2px;
+  --radius-l: 4px;
 
-  --shadow-card: 0 1px 2px rgb(33 28 22 / 0.05);
-  --shadow-raised: 0 4px 16px rgb(33 28 22 / 0.08);
+  /* Elevation: hard offset shadows, never blurred */
+  --shadow-1: 2px 2px 0 var(--border);
+  --shadow-2: 4px 4px 0 var(--border);
+  --shadow-3: 6px 6px 0 var(--border);
+  --shadow-pressed: 0px 0px 0 var(--border);
 
-  --measure: 64ch;
-  --shell-max: 72rem;
+  /* Paper dot grid */
+  --dot-color: rgba(20, 20, 20, 0.12);
+  --dot-size: 22px;
+
+  --transition: 120ms steps(2, end);
   --nav-height: 4rem;
-  --transition: 140ms ease;
+  --shell-max: 72rem;
+  --measure: 68ch;
 }
