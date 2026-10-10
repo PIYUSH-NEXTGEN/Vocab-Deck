@@ -1,0 +1,60 @@
+/* Design tokens: warm paper neutrals, restrained accents, editorial typography.
+   No neon, no gradients, no decorative ornament. */
+:root {
+  /* Paper + ink scale (warm neutrals) */
+  --paper: #faf7f1;
+  --paper-raised: #fffdf9;
+  --paper-sunken: #f2ede3;
+  --paper-inset: #ede6d9;
+  --ink: #211c16;
+  --ink-soft: #4d463c;
+  --ink-faint: #8a8175;
+  --hairline: #e5ddcf;
+  --hairline-strong: #cfc2ad;
+
+  /* Restrained accents */
+  --accent: #9a4a24;
+  --accent-strong: #7c3a1a;
+  --accent-soft: #f4e7dc;
+  --correct: #3f6b4f;
+  --correct-soft: #e4eee7;
+  --incorrect: #a23b32;
+  --incorrect-soft: #f6e5e2;
+  --focus-ring: #b3572c;
+
+  /* Editorial typography */
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-body: "Avenir Next", "Segoe UI", system-ui, -apple-system, Roboto,
+    sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+
+  --text-xs: 0.78rem;
+  --text-s: 0.88rem;
+  --text-m: 1rem;
+  --text-l: clamp(1.15rem, 1.05rem + 0.4vw, 1.3rem);
+  --text-xl: clamp(1.45rem, 1.3rem + 0.8vw, 1.8rem);
+  --text-2xl: clamp(1.9rem, 1.6rem + 1.4vw, 2.5rem);
+
+  /* Deliberate spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-l: 14px;
+
+  --shadow-card: 0 1px 2px rgb(33 28 22 / 0.05);
+  --shadow-raised: 0 4px 16px rgb(33 28 22 / 0.08);
+
+  --measure: 64ch;
+  --shell-max: 72rem;
+  --nav-height: 4rem;
+  --transition: 140ms ease;
+}
