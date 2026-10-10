@@ -35,6 +35,29 @@ npm install
 npm run dev
 ```
 
+## Troubleshooting: "Request failed with status 404" / cards not loading
+
+The frontend talks to the backend through the `/api` prefix. A 404 with
+`{"detail":"Not Found"}` means port **8000 is serving a different application**
+(another project's server, for example). The backend would have failed to start
+with "address already in use".
+
+Run the backend on a free port and point the frontend at it:
+
+```
+cd backend
+python -m uvicorn app.main:app --port 8001
+
+cd frontend
+VITE_API_TARGET=http://127.0.0.1:8001 npm run dev   # keep the /api proxy
+# or, bypassing the proxy (also works with `npm run preview`):
+VITE_API_URL=http://127.0.0.1:8001/api npm run dev
+```
+
+Environment variables are read when the dev server starts, so restart it after
+changing them. If something else answers on the API port, the app now says so
+explicitly ("Wrong service on the API port") instead of a bare 404.
+
 ## Test and check
 
 ```

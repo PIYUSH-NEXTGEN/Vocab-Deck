@@ -1,21 +1,19 @@
 /** React binding for custom-deck storage, separate from session progress. */
 
 import { useCallback, useEffect, useState } from "react";
-import type { CustomDeckSummary } from "../api/types";
+import type { CustomDeckDocument, CustomDeckSummary } from "../api/types";
 import {
   deleteCustomDeck,
   listCustomDecks,
   saveCustomDeck,
   subscribeToCustomDecks,
 } from "../storage/customDecks";
-import type { CustomDeckDocument } from "../api/types";
-import { validateCustomDeck } from "../decks/validate";
 
 export interface UseCustomDecks {
   decks: CustomDeckSummary[];
-  importDocument: (raw: unknown) => { ok: true } | { ok: false; errors: string[] };
-  remove: (id: string) => void;
+  /** Create or update a deck in place (id decides which). */
   save: (doc: CustomDeckDocument) => void;
+  remove: (id: string) => void;
 }
 
 export function useCustomDecks(): UseCustomDecks {
@@ -27,23 +25,16 @@ export function useCustomDecks(): UseCustomDecks {
 
   return {
     decks,
-    importDocument: useCallback((raw: unknown) => {
-      const result = validateCustomDeck(raw);
-      if (!result.ok) return { ok: false as const, errors: result.errors };
-      saveCustomDeck(result.deck);
-      refresh();
-      return { ok: true as const };
-    }, [refresh]),
-    remove: useCallback(
-      (id: string) => {
-        deleteCustomDeck(id);
+    save: useCallback(
+      (doc: CustomDeckDocument) => {
+        saveCustomDeck(doc);
         refresh();
       },
       [refresh],
     ),
-    save: useCallback(
-      (doc: CustomDeckDocument) => {
-        saveCustomDeck(doc);
+    remove: useCallback(
+      (id: string) => {
+        deleteCustomDeck(id);
         refresh();
       },
       [refresh],

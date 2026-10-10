@@ -119,3 +119,25 @@ test("client maps snake_case DTOs to domain objects and surfaces 404 errors", as
   );
   await expect(listDecks()).rejects.toMatchObject({ code: "deck_not_found", status: 404 });
 });
+
+test("a foreign server on the API port produces an actionable error", async () => {
+  // e.g. another project's FastAPI app squatting on port 8000.
+  vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ detail: "Not Found" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      }),
+    ),
+  );
+  await expect(listDecks()).rejects.toMatchObject({
+    code: "unexpected_response",
+    status: 404,
+  });
+  try {
+    await listDecks();
+  } catch (error) {
+    expect((error as Error).message).toMatch(/not the Flash Card Game API/i);
+    expect((error as Error).message).toMatch(/uvicorn app\.main:app --port 8000/);
+  }
+});

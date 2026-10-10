@@ -40,14 +40,36 @@ function baseUrl(): string {
 
 interface ErrorBody {
   error?: { code?: string; message?: string };
+  /** FastAPI's default error shape — from a server that is NOT this service. */
+  detail?: unknown;
 }
 
 async function readErrorBody(response: Response): Promise<ErrorBody | null> {
   try {
-    return (await response.json()) as ErrorBody;
+    const parsed: unknown = await response.json();
+    if (parsed && typeof parsed === "object") return parsed as ErrorBody;
+    return null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Explain a response that did not come from this service (foreign server on the
+ * same port, a static file server returning HTML, a wrong VITE_API_URL, ...).
+ */
+function foreignServerMessage(status: number, body: ErrorBody | null): string {
+  if (body && "detail" in body) {
+    return (
+      `The server at ${baseUrl()} is not the Flash Card Game API ` +
+      `(it replied ${status}: ${JSON.stringify(body.detail)}). ` +
+      "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL."
+    );
+  }
+  return (
+    `The server at ${baseUrl()} did not return a vocabulary API response (status ${status}). ` +
+    "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL."
+  );
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -79,11 +101,14 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 
   if (!response.ok) {
     const body = await readErrorBody(response);
-    throw new ApiError(
-      body?.error?.code ?? "http_error",
-      body?.error?.message ?? `Request failed with status ${response.status}.`,
-      response.status,
-    );
+    if (body?.error?.code || body?.error?.message) {
+      throw new ApiError(
+        body.error.code ?? "http_error",
+        body.error.message ?? `Request failed with status ${response.status}.`,
+        response.status,
+      );
+    }
+    throw new ApiError("unexpected_response", foreignServerMessage(response.status, body), response.status);
   }
   return (await response.json()) as T;
 }

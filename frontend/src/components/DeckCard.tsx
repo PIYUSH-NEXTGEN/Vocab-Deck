@@ -6,10 +6,12 @@ import { languagePairLabel } from "../lang/display";
 export function DeckCard({
   deck,
   selected = false,
+  readOnly = false,
   onSelect,
 }: {
   deck: DeckListItem;
   selected?: boolean;
+  readOnly?: boolean;
   onSelect?: (deck: DeckListItem) => void;
 }) {
   return (
@@ -30,16 +32,19 @@ export function DeckCard({
       </div>
       <div className="row row-space deck-meta">
         <span className="label">{deck.entryCount} entries</span>
-        {onSelect ? (
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => onSelect(deck)}
-            aria-pressed={selected}
-          >
-            {selected ? "Selected" : "Select deck"}
-          </button>
-        ) : null}
+        <span className="row">
+          {readOnly ? <Chip>Read-only</Chip> : null}
+          {onSelect ? (
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => onSelect(deck)}
+              aria-pressed={selected}
+            >
+              {selected ? "Selected" : "Select deck"}
+            </button>
+          ) : null}
+        </span>
       </div>
     </Panel>
   );

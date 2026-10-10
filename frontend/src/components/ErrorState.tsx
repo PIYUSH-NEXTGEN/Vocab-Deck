@@ -16,6 +16,11 @@ function describe(error: unknown): { title: string; message: string } {
         };
       case "timeout":
         return { title: "Service timed out", message: error.message };
+      case "unexpected_response":
+        return {
+          title: "Wrong service on the API port",
+          message: error.message,
+        };
       default:
         return { title: "Request failed", message: error.message };
     }

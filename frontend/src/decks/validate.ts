@@ -87,9 +87,12 @@ function validateEntry(raw: unknown, index: number): VocabularyEntry {
   return { id, source: normalizeText(source), target: normalizeText(target), alternatives, tags };
 }
 
-export function validateCustomDeck(doc: unknown): ValidationResult {
+export function validateCustomDeck(
+  doc: unknown,
+  existingIds: readonly string[] = [],
+): ValidationResult {
   if (typeof doc !== "object" || doc === null) {
-    return { ok: false, errors: ["Import must be a JSON object."] };
+    return { ok: false, errors: ["Deck file must be an object."] };
   }
   const root = doc as Record<string, unknown>;
   const errors: string[] = [];
@@ -103,10 +106,18 @@ export function validateCustomDeck(doc: unknown): ValidationResult {
   >;
   const name = isNonEmptyString(deck.name) ? normalizeText(deck.name) : "";
   if (!name) errors.push("Deck name is required.");
-  const id = isNonEmptyString(deck.id) ? normalizeText(deck.id) : "";
-  if (!id) errors.push("Deck id is required.");
-  else if (!ID_PATTERN.test(id)) {
-    errors.push(`Deck id "${id}" must match ^[a-z0-9][a-z0-9_-]{0,63}$.`);
+  // Ids are optional in files: when absent they are derived from the deck name.
+  const id = isNonEmptyString(deck.id)
+    ? normalizeText(deck.id)
+    : suggestCustomDeckId(name);
+  if (!id || !ID_PATTERN.test(id)) {
+    errors.push(
+      `Deck id "${String(deck.id ?? "")}" must match ^[a-z0-9][a-z0-9_-]{0,63}$ (lowercase ASCII).`,
+    );
+  } else if (existingIds.includes(id)) {
+    errors.push(
+      `A deck with id "${id}" already exists in this browser. Import with a different name, or delete the existing deck first.`,
+    );
   }
   const sourceLanguage = isNonEmptyString(deck.sourceLanguage) ? normalizeText(deck.sourceLanguage) : "";
   const targetLanguage = isNonEmptyString(deck.targetLanguage) ? normalizeText(deck.targetLanguage) : "";

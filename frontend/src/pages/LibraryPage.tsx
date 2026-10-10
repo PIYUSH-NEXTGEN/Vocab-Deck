@@ -1,26 +1,29 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { listDecks } from "../api/client";
 import { useAsync } from "../api/useAsync";
 import { useCustomDecks } from "../storage/useCustomDecks";
 import { builtInDeckItem, customDeckItem, playHref } from "../lib/deckItems";
 import type { DeckListItem } from "../lib/deckItems";
+import { Button } from "../components/Button";
 import { DeckCard } from "../components/DeckCard";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
-import { Spinner } from "../components/Spinner";
-import { SegmentedControl } from "../components/SegmentedControl";
-import { Button } from "../components/Button";
-import { CustomDeckEditor } from "../components/CustomDeckEditor";
 import { ImportDeckPanel } from "../components/ImportDeckPanel";
+import { Spinner } from "../components/Spinner";
 import { downloadDeck, getCustomDeck, toExportDocument } from "../storage/customDecks";
+import { deckToCsv } from "../decks/csvFormat";
 
 type Tab = "builtin" | "custom";
 
 export function LibraryPage() {
   const builtIn = useAsync((signal) => listDecks(signal), []);
   const custom = useCustomDecks();
-  const [tab, setTab] = useState<Tab>("builtin");
+  const location = useLocation();
+  const [tab, setTab] = useState<Tab>(
+    () => (location.state as { tab?: Tab } | null)?.tab ?? "builtin",
+  );
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const customItems: DeckListItem[] = useMemo(
@@ -34,20 +37,34 @@ export function LibraryPage() {
         <p className="label">Deck library</p>
         <h1>Your decks</h1>
         <p className="muted measure">
-          Built-in decks come from the vocabulary API and are read-only. Custom decks live in this
-          browser only — export them as JSON to keep a portable backup.
+          Built-in decks come from the vocabulary API and are read-only. Custom decks live
+          in this browser only — export them as JSON or CSV to keep a portable backup.
         </p>
+        <div className="row">
+          <Button variant="primary" onClick={() => navigate("/editor")}>
+            New custom deck
+          </Button>
+        </div>
       </header>
 
-      <SegmentedControl<Tab>
-        ariaLabel="Deck origin filter"
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "builtin", label: `Built-in`, hint: "from the API" },
-          { value: "custom", label: `Custom`, hint: "in this browser" },
-        ]}
-      />
+      <div className="segmented" role="group" aria-label="Deck origin filter">
+        <button
+          type="button"
+          className={`segmented-option${tab === "builtin" ? " is-active" : ""}`}
+          aria-pressed={tab === "builtin"}
+          onClick={() => setTab("builtin")}
+        >
+          Built-in <span className="segmented-hint faint">from the API</span>
+        </button>
+        <button
+          type="button"
+          className={`segmented-option${tab === "custom" ? " is-active" : ""}`}
+          aria-pressed={tab === "custom"}
+          onClick={() => setTab("custom")}
+        >
+          Custom <span className="segmented-hint faint">in this browser</span>
+        </button>
+      </div>
 
       {tab === "builtin" ? (
         <section className="stack" aria-label="Built-in decks">
@@ -62,28 +79,28 @@ export function LibraryPage() {
             />
           ) : (
             <ul className="deck-grid">
-              {builtIn.state.data.map((deck) => {
-                const item = builtInDeckItem(deck);
-                return (
-                  <DeckCard
-                    key={deck.id}
-                    deck={item}
-                    selected={false}
-                    onSelect={() => navigate(playHref("flashcards", deck.id))}
-                  />
-                );
-              })}
+              {builtIn.state.data.map((deck) => (
+                <DeckCard
+                  key={deck.id}
+                  deck={builtInDeckItem(deck)}
+                  readOnly
+                  onSelect={() => navigate(playHref("flashcards", deck.id))}
+                />
+              ))}
             </ul>
           )}
         </section>
       ) : (
         <section className="stack" aria-label="Custom decks">
-          <ImportDeckPanel onImport={custom.importDocument} />
+          <ImportDeckPanel
+            existingIds={custom.decks.map((deck) => deck.id)}
+            onImported={custom.save}
+          />
 
           {customItems.length === 0 ? (
             <EmptyState
               title="No custom decks yet"
-              description="Import a JSON deck below, or create one from scratch."
+              description="Create a deck above, or import one from a JSON or CSV file."
             />
           ) : (
             <ul className="deck-grid">
@@ -91,7 +108,6 @@ export function LibraryPage() {
                 <DeckCard
                   key={item.id}
                   deck={item}
-                  selected={false}
                   onSelect={() => navigate(playHref("flashcards", item.id))}
                 />
               ))}
@@ -108,31 +124,60 @@ export function LibraryPage() {
                       {item.name} <span className="faint">· {item.entryCount} entries</span>
                     </span>
                     <span className="row">
+                      <Button size="small" onClick={() => navigate(`/editor/${item.id}`)}>
+                        Edit
+                      </Button>
                       <Button
                         size="small"
                         variant="secondary"
-                        onClick={() => {
-                          if (!doc) return;
-                          downloadDeck(`${item.id}.json`, toExportDocument(doc));
-                        }}
+                        onClick={() =>
+                          doc && downloadDeck(`${item.id}.json`, toExportDocument(doc))
+                        }
                       >
-                        Export
+                        Export JSON
                       </Button>
                       <Button
                         size="small"
-                        variant="ghost"
-                        onClick={() => custom.remove(item.id)}
+                        variant="secondary"
+                        onClick={() => doc && downloadDeck(`${item.id}.csv`, deckToCsv(doc))}
                       >
-                        Delete
+                        Export CSV
                       </Button>
+                      {pendingDelete === item.id ? (
+                        <>
+                          <Button
+                            size="small"
+                            variant="primary"
+                            onClick={() => {
+                              custom.remove(item.id);
+                              setPendingDelete(null);
+                            }}
+                          >
+                            Confirm delete
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="ghost"
+                            onClick={() => setPendingDelete(null)}
+                          >
+                            Keep
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="ghost"
+                          onClick={() => setPendingDelete(item.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </span>
                   </li>
                 );
               })}
             </ul>
           ) : null}
-
-          <CustomDeckEditor onSave={custom.save} existingIds={custom.decks.map((d) => d.id)} />
         </section>
       )}
 

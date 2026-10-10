@@ -1,29 +1,28 @@
 import { useState } from "react";
 import type { CustomDeckDocument, VocabularyEntry } from "../api/types";
-import { validateCustomDeck, suggestCustomDeckId } from "../decks/validate";
+import { suggestCustomDeckId, validateCustomDeck } from "../decks/validate";
 import { Button } from "./Button";
 import { Panel } from "./Panel";
 
-interface DraftRow {
+interface EntryRow {
+  /** Existing entry id, kept stable across edits; new rows have none. */
+  id: string;
   source: string;
   target: string;
   alternatives: string;
   tags: string;
 }
 
-const EMPTY_ROW: DraftRow = { source: "", target: "", alternatives: "", tags: "" };
+const EMPTY_ROW: EntryRow = { id: "", source: "", target: "", alternatives: "", tags: "" };
 
-function rowToEntry(row: DraftRow, index: number): VocabularyEntry {
-  const source = row.source.trim();
-  const id =
-    suggestCustomDeckId(source).replace("custom-", "") || `entry-${index + 1}`;
-  return {
-    id,
-    source,
-    target: row.target.trim(),
-    alternatives: splitList(row.alternatives),
-    tags: splitList(row.tags),
-  };
+function rowsFromDeck(deck: CustomDeckDocument): EntryRow[] {
+  return deck.entries.map((entry) => ({
+    id: entry.id,
+    source: entry.source,
+    target: entry.target,
+    alternatives: entry.alternatives.join(", "),
+    tags: entry.tags.join(", "),
+  }));
 }
 
 function splitList(value: string): string[] {
@@ -33,34 +32,54 @@ function splitList(value: string): string[] {
     .filter((item) => item.length > 0);
 }
 
-/** Create a custom deck (name, languages, entries) with the shared validator. */
+/**
+ * Create or edit a custom deck. In edit mode the deck id and entry ids are
+ * preserved (documented id-stability rule); only genuinely new rows receive
+ * derived ids. Saving runs the shared validator, so editor output and imported
+ * decks follow identical rules.
+ */
 export function CustomDeckEditor({
-  onSave,
+  deck = null,
   existingIds,
+  onSave,
+  onDone,
 }: {
+  deck?: CustomDeckDocument | null;
+  existingIds: readonly string[];
   onSave: (deck: CustomDeckDocument) => void;
-  existingIds: string[];
+  onDone: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [sourceLanguage, setSourceLanguage] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("");
-  const [rows, setRows] = useState<DraftRow[]>([{ ...EMPTY_ROW }]);
+  const isEdit = deck !== null;
+  const [name, setName] = useState(deck?.deck.name ?? "");
+  const [description, setDescription] = useState(deck?.deck.description ?? "");
+  const [sourceLanguage, setSourceLanguage] = useState(deck?.deck.sourceLanguage ?? "");
+  const [targetLanguage, setTargetLanguage] = useState(deck?.deck.targetLanguage ?? "");
+  const [rows, setRows] = useState<EntryRow[]>(() =>
+    deck ? rowsFromDeck(deck) : [{ ...EMPTY_ROW }],
+  );
   const [errors, setErrors] = useState<string[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  function updateRow(index: number, patch: Partial<DraftRow>) {
+  function updateRow(index: number, patch: Partial<EntryRow>) {
     setRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
 
   function save() {
     const filled = rows.filter((row) => row.source.trim() || row.target.trim());
-    const entries = filled.map(rowToEntry);
-    const id = suggestCustomDeckId(name);
-    const doc = {
-      version: 1 as const,
+    const entries: VocabularyEntry[] = filled.map((row) => ({
+      // Existing ids are preserved; new rows have id "" and get one derived
+      // from the source text by the validator.
+      id: row.id,
+      source: row.source.trim(),
+      target: row.target.trim(),
+      alternatives: splitList(row.alternatives),
+      tags: splitList(row.tags),
+    }));
+
+    const doc: CustomDeckDocument = {
+      version: 1,
       deck: {
-        id,
+        id: deck?.deck.id ?? suggestCustomDeckId(name),
         name,
         description,
         sourceLanguage,
@@ -68,38 +87,31 @@ export function CustomDeckEditor({
         entryCount: entries.length,
       },
       entries,
-      exportedAt: new Date().toISOString(),
+      exportedAt: deck?.exportedAt ?? new Date().toISOString(),
     };
-    const result = validateCustomDeck(doc);
+
+    // In edit mode the deck's own id must not count as a collision.
+    const otherIds = existingIds.filter((id) => id !== deck?.deck.id);
+    const result = validateCustomDeck(doc, otherIds);
     if (!result.ok) {
       setNotice(null);
       setErrors(result.errors);
       return;
     }
-    if (existingIds.includes(result.deck.deck.id)) {
-      setNotice(null);
-      setErrors([
-        `A deck with id "${result.deck.deck.id}" already exists in this browser. Rename it to create a distinct deck.`,
-      ]);
-      return;
-    }
     setErrors(null);
-    setNotice(`Saved "${result.deck.deck.name}" to this browser.`);
+    setNotice(isEdit ? "Changes saved." : "Deck saved to this browser.");
     onSave(result.deck);
-    setName("");
-    setDescription("");
-    setSourceLanguage("");
-    setTargetLanguage("");
-    setRows([{ ...EMPTY_ROW }]);
+    onDone();
   }
 
   return (
     <Panel className="stack" as="section">
       <div className="stack-tight">
-        <h3>Create a custom deck</h3>
+        <h3>{isEdit ? `Edit “${deck?.deck.name}”` : "Create a custom deck"}</h3>
         <p className="faint">
-          Any language pair works — codes like <code>fr</code>, <code>de</code>,{" "}
-          <code>ja</code> or <code>zh-Hans</code>. Entries are stored in this browser only.
+          Any language pair works — codes like <code>fr</code>, <code>de</code>, <code>ja</code>{" "}
+          or <code>zh-Hans</code>. Decks are stored in this browser only.
+          {isEdit ? " Existing entry ids are preserved when you edit." : ""}
         </p>
       </div>
 
@@ -175,18 +187,17 @@ export function CustomDeckEditor({
             >
               Remove
             </Button>
+            {row.id ? (
+              <span className="faint entry-id" title="Entry id (stable)">
+                {row.id}
+              </span>
+            ) : null}
           </div>
         ))}
         <Button size="small" onClick={() => setRows((current) => [...current, { ...EMPTY_ROW }])}>
           Add entry
         </Button>
       </fieldset>
-
-      <div className="row">
-        <Button variant="primary" onClick={save}>
-          Save deck
-        </Button>
-      </div>
 
       {notice ? (
         <p className="notice" role="status">
@@ -205,6 +216,15 @@ export function CustomDeckEditor({
           </ul>
         </div>
       ) : null}
+
+      <div className="row">
+        <Button variant="primary" onClick={save}>
+          {isEdit ? "Save changes" : "Create deck"}
+        </Button>
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
     </Panel>
   );
 }
