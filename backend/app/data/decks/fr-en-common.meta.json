@@ -1,0 +1,7 @@
+{
+  "id": "fr-en-common",
+  "name": "French to English Common Words",
+  "description": "101 common French words with English translations, migrated from the original flashcard dataset. Tags and alternative translations can be added by editing the CSV.",
+  "source_language": "fr",
+  "target_language": "en"
+}
