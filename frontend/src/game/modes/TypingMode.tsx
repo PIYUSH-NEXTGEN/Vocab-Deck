@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { buildFlashcardOrder, seededRng } from "../engine";
 import { acceptedAnswers, matchesTranslation } from "../text";
+import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
@@ -18,6 +19,9 @@ type Result = "correct" | "incorrect" | null;
  */
 export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
   const { recordTypingAttempt, stats } = useSession();
+  const register = useAnimationRegistry();
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
   const [attempt, setAttempt] = useState(0);
   const order = useMemo(
     () => buildFlashcardOrder(deck.entries, seededRng(seed ?? attempt)),
@@ -31,6 +35,16 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
   const entry = order[Math.min(index, order.length - 1)];
   const finished = index >= order.length;
+
+  // Feedback accent mirrors scoring; it can never delay or block the next step.
+  useEffect(() => {
+    if (result === "correct") register(pulse(feedbackRef.current));
+    else if (result === "incorrect") register(shake(feedbackRef.current));
+  }, [result, register]);
+
+  useEffect(() => {
+    if (finished) register(rise(summaryRef.current));
+  }, [finished, register]);
 
   useEffect(() => {
     setInput("");
@@ -61,18 +75,20 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
   if (finished) {
     return (
-      <Panel className="stack summary">
-        <h3>Typing complete</h3>
-        <p className="muted">
-          You typed {stats.typing.attempted} translations this session, {stats.typing.correct}{" "}
-          of them correctly.
-        </p>
-        <div className="row">
-          <Button variant="primary" onClick={playAgain}>
-            Practice again
-          </Button>
-        </div>
-      </Panel>
+      <div ref={summaryRef}>
+        <Panel className="stack summary">
+          <h3>Typing complete</h3>
+          <p className="muted">
+            You typed {stats.typing.attempted} translations this session, {stats.typing.correct}{" "}
+            of them correctly.
+          </p>
+          <div className="row">
+            <Button variant="primary" onClick={playAgain}>
+              Practice again
+            </Button>
+          </div>
+        </Panel>
+      </div>
     );
   }
 
@@ -127,9 +143,9 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
           </p>
         ) : null}
 
-        {result !== null ? (
-          <div className="stack" role="status">
-            <p className={result === "correct" ? "notice" : "notice notice-error"}>
+      {result !== null ? (
+        <div className="stack" role="status" ref={feedbackRef}>
+          <p className={result === "correct" ? "notice" : "notice notice-error"}>
               {result === "correct"
                 ? "Correct."
                 : `Not quite — accepted: ${acceptedAnswers(entry).join(", ")}`}

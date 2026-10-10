@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { MAX_QUIZ_ROUNDS, buildQuizRounds, seededRng } from "../engine";
+import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
@@ -15,6 +16,9 @@ import { ProgressBar } from "../../components/ProgressBar";
  */
 export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
   const { recordQuizAnswer, stats } = useSession();
+  const register = useAnimationRegistry();
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
   const [attempt, setAttempt] = useState(0);
   const rounds = useMemo(
     () => buildQuizRounds(deck.entries, seededRng(seed ?? attempt), MAX_QUIZ_ROUNDS),
@@ -23,6 +27,24 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Derived before the early returns so both effects below stay unconditional.
+  const activeRound = rounds.length > 0 ? rounds[Math.min(index, rounds.length - 1)] : null;
+
+  // Feedback accent: pulse for correct, gentle shake for incorrect. Scoring is
+  // already done by the time it runs, so animation never gates state.
+  useEffect(() => {
+    if (!submitted || !activeRound) return;
+    if (selected === activeRound.answer) {
+      register(pulse(feedbackRef.current));
+    } else {
+      register(shake(feedbackRef.current));
+    }
+  }, [submitted, selected, activeRound, register]);
+
+  useEffect(() => {
+    if (rounds.length > 0 && index >= rounds.length) register(rise(summaryRef.current));
+  }, [index, rounds.length, register]);
 
   if (rounds.length === 0) {
     return (
@@ -57,18 +79,20 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
 
   if (finished) {
     return (
-      <Panel className="stack summary">
-        <h3>Quiz complete</h3>
-        <p className="muted">
-          You answered {stats.quiz.answered} questions this session, {stats.quiz.correct} of
-          them correctly.
-        </p>
-        <div className="row">
-          <Button variant="primary" onClick={playAgain}>
-            Play again
-          </Button>
-        </div>
-      </Panel>
+      <div ref={summaryRef}>
+        <Panel className="stack summary">
+          <h3>Quiz complete</h3>
+          <p className="muted">
+            You answered {stats.quiz.answered} questions this session, {stats.quiz.correct} of
+            them correctly.
+          </p>
+          <div className="row">
+            <Button variant="primary" onClick={playAgain}>
+              Play again
+            </Button>
+          </div>
+        </Panel>
+      </div>
     );
   }
 
@@ -117,7 +141,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       </ul>
 
       {submitted ? (
-        <div className="stack" role="status">
+        <div className="stack" role="status" ref={feedbackRef}>
           <p className={selected === round.answer ? "notice" : "notice notice-error"}>
             {selected === round.answer
               ? "Correct."

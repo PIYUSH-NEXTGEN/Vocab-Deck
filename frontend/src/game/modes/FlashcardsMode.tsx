@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { buildFlashcardOrder, seededRng } from "../engine";
+import { rise, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
@@ -12,10 +13,12 @@ export const AUTO_REVEAL_MS = 3000;
 /**
  * Flashcards: show the source word, reveal the translation (automatically or on
  * demand), then self-assess. The auto-reveal timer is always cleaned up: on
- * card change, on manual reveal, and on unmount (e.g. mode switches).
+ * card change, on manual reveal, and on unmount (e.g. mode switches). The card
+ * flip is a CSS transform; reduced motion swaps the faces without animating.
  */
 export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
   const { recordFlashcardAssessment } = useSession();
+  const register = useAnimationRegistry();
   const [attempt, setAttempt] = useState(0);
   const order = useMemo(
     () => buildFlashcardOrder(deck.entries, seededRng(seed ?? attempt)),
@@ -25,6 +28,7 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -41,6 +45,10 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
     timerRef.current = window.setTimeout(() => setRevealed(true), AUTO_REVEAL_MS);
     return clearTimer;
   }, [index, revealed, finished, clearTimer]);
+
+  useEffect(() => {
+    if (finished) register(rise(summaryRef.current));
+  }, [finished, register]);
 
   const advance = useCallback(() => {
     clearTimer();
@@ -70,18 +78,20 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
 
   if (finished) {
     return (
-      <Panel className="stack summary">
-        <h3>Deck finished</h3>
-        <p className="muted">
-          You reviewed all {order.length} cards. Self-assessments are in the session summary
-          above.
-        </p>
-        <div className="row">
-          <Button variant="primary" onClick={restart}>
-            Study again
-          </Button>
-        </div>
-      </Panel>
+      <div ref={summaryRef}>
+        <Panel className="stack summary">
+          <h3>Deck finished</h3>
+          <p className="muted">
+            You reviewed all {order.length} cards. Self-assessments are in the session
+            summary above.
+          </p>
+          <div className="row">
+            <Button variant="primary" onClick={restart}>
+              Study again
+            </Button>
+          </div>
+        </Panel>
+      </div>
     );
   }
 
@@ -96,21 +106,27 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
         <ProgressBar value={index} max={order.length} label={`${index} reviewed`} />
       </div>
 
-      <Panel className="stack flashcard">
-        <span className="label">{languageName(deck.sourceLanguage)}</span>
-        <p className="flashcard-word">{entry.source}</p>
-        {revealed ? (
-          <>
-            <hr className="rule" />
+      <Panel className={`stack flashcard flashcard-flip${revealed ? " is-revealed" : ""}`}>
+        <div className="flashcard-flipper">
+          <div className="flashcard-face flashcard-face-front" aria-hidden="true">
+            <span className="label">{languageName(deck.sourceLanguage)}</span>
+            <p className="flashcard-word">{entry.source}</p>
+            <p className="faint">The translation appears automatically after 3 seconds.</p>
+          </div>
+          <div className="flashcard-face flashcard-face-back" aria-hidden="true">
             <span className="label">{languageName(deck.targetLanguage)}</span>
             <p className="flashcard-word flashcard-translation">{entry.target}</p>
             {entry.alternatives.length > 0 ? (
               <p className="faint">Also accepted: {entry.alternatives.join(", ")}</p>
             ) : null}
-          </>
-        ) : (
-          <p className="faint">The translation appears automatically after 3 seconds.</p>
-        )}
+          </div>
+        </div>
+        {/* Screen-reader announcement; the visual faces are decorative here. */}
+        <p className="sr-only" role="status">
+          {revealed
+            ? `Translation of ${entry.source}: ${entry.target}.`
+            : `Card showing ${entry.source}. Translation hidden.`}
+        </p>
       </Panel>
 
       {revealed ? (

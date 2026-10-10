@@ -1,0 +1,117 @@
+/* Motion: CSS-driven card flip, restrained feedback, reduced-motion support.
+   Anime.js (src/lib/motion.ts) is reserved for short feedback accents that
+   cannot be expressed as a state transition. */
+
+/* --- Card flip (CSS transform only) --- */
+.flashcard-flip {
+  perspective: 1200px;
+  min-height: 14rem;
+}
+
+.flashcard-flipper {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 320ms ease;
+}
+
+.flashcard-flip.is-revealed .flashcard-flipper {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  min-height: 12rem;
+}
+
+.flashcard-face-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+/* --- Feedback accents (CSS fallback for the same intent as motion.ts) --- */
+.feedback-pulse {
+  animation: feedback-pulse 340ms ease;
+}
+
+.feedback-shake {
+  animation: feedback-shake 360ms ease;
+}
+
+@keyframes feedback-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes feedback-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* --- Utilities --- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Reduced motion: disable transforms, keep every state change --- */
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-flipper,
+  .flashcard-flip.is-revealed .flashcard-flipper {
+    transition: none;
+    transform: none;
+  }
+
+  /* No 3D flip: the revealed content simply replaces the hidden side. */
+  .flashcard-face-back {
+    position: static;
+    transform: none;
+  }
+
+  .flashcard-flip.is-revealed .flashcard-face-front {
+    display: none;
+  }
+
+  .feedback-pulse,
+  .feedback-shake {
+    animation: none;
+  }
+
+  .mode-card:hover {
+    transform: none;
+  }
+}
+
+/* --- Responsive refinements --- */
+@media (max-width: 640px) {
+  .match-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .option-list {
+    gap: var(--space-2);
+  }
+
+  .flashcard-face-back {
+    inset: 0;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .deck-grid,
+  .mode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  }
+}

@@ -83,23 +83,27 @@ describe("FlashcardsMode", () => {
 
   test("shows the source word and auto-reveals the translation after 3s", () => {
     const order = buildFlashcardOrder(DECK.entries, seededRng(1));
-    renderMode(<FlashcardsMode deck={DECK} seed={1} />);
+    const { container } = renderMode(<FlashcardsMode deck={DECK} seed={1} />);
 
     expect(screen.getByText(order[0].source)).toBeInTheDocument();
-    expect(screen.queryByText(order[0].target)).not.toBeInTheDocument();
+    const flip = container.querySelector(".flashcard-flip")!;
+    expect(flip).not.toHaveClass("is-revealed");
 
     act(() => {
       vi.advanceTimersByTime(AUTO_REVEAL_MS);
     });
 
+    expect(flip).toHaveClass("is-revealed");
     expect(screen.getByText(order[0].target)).toBeInTheDocument();
   });
 
   test("manual reveal shows the translation immediately", () => {
     const order = buildFlashcardOrder(DECK.entries, seededRng(2));
-    renderMode(<FlashcardsMode deck={DECK} seed={2} />);
+    const { container } = renderMode(<FlashcardsMode deck={DECK} seed={2} />);
 
     fireEvent.click(screen.getByRole("button", { name: /reveal translation/i }));
+    const flip = container.querySelector(".flashcard-flip")!;
+    expect(flip).toHaveClass("is-revealed");
     expect(screen.getByText(order[0].target)).toBeInTheDocument();
   });
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { MAX_MATCH_PAIRS, buildMatchBoard, seededRng } from "../engine";
+import { pop, pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
@@ -20,6 +21,8 @@ type Feedback = { tone: "correct" | "incorrect"; message: string } | null;
  */
 export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
   const { recordMatchAttempt, stats } = useSession();
+  const register = useAnimationRegistry();
+  const summaryRef = useRef<HTMLDivElement | null>(null);
   const [attempt, setAttempt] = useState(0);
   const board = useMemo(
     () => buildMatchBoard(deck.entries, seededRng(seed ?? attempt), MAX_MATCH_PAIRS),
@@ -30,6 +33,10 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [finished, setFinished] = useState(false);
   const feedbackTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (finished) register(rise(summaryRef.current));
+  }, [finished, register]);
 
   const clearFeedbackTimer = useCallback(() => {
     if (feedbackTimer.current !== null) {
@@ -66,14 +73,18 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
     );
   }
 
-  function selectSource(pairId: string) {
+  function selectSource(pairId: string, element: HTMLElement) {
     if (completed.has(pairId)) return; // no re-matching completed pairs
     clearFeedbackTimer();
     setFeedback(null);
-    setSelectedSourceId((current) => (current === pairId ? null : pairId));
+    setSelectedSourceId((current) => {
+      if (current === pairId) return null;
+      register(pop(element));
+      return pairId;
+    });
   }
 
-  function selectTarget(pairId: string) {
+  function selectTarget(pairId: string, element: HTMLElement) {
     if (!selectedSourceId || completed.has(pairId)) return;
     if (pairId === selectedSourceId) {
       recordMatchAttempt(true);
@@ -82,6 +93,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
       setCompleted(nextCompleted);
       setSelectedSourceId(null);
       setFeedback({ tone: "correct", message: "Paired." });
+      register(pulse(element));
       if (nextCompleted.size === board.pairs.length) {
         clearFeedbackTimer();
         setFinished(true);
@@ -91,23 +103,26 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
     recordMatchAttempt(false);
     setSelectedSourceId(null);
     setFeedback({ tone: "incorrect", message: "Not a pair — try again." });
+    register(shake(element));
     feedbackTimer.current = window.setTimeout(() => setFeedback(null), FEEDBACK_MS);
   }
 
   if (finished) {
     return (
-      <Panel className="stack summary">
-        <h3>All pairs matched</h3>
-        <p className="muted">
-          You completed {board.pairs.length} pairs this round. Across the session:{" "}
-          {stats.matching.pairsCompleted} pairs and {stats.matching.attempts} attempts.
-        </p>
-        <div className="row">
-          <Button variant="primary" onClick={playAgain}>
-            Play again
-          </Button>
-        </div>
-      </Panel>
+      <div ref={summaryRef}>
+        <Panel className="stack summary">
+          <h3>All pairs matched</h3>
+          <p className="muted">
+            You completed {board.pairs.length} pairs this round. Across the session:{" "}
+            {stats.matching.pairsCompleted} pairs and {stats.matching.attempts} attempts.
+          </p>
+          <div className="row">
+            <Button variant="primary" onClick={playAgain}>
+              Play again
+            </Button>
+          </div>
+        </Panel>
+      </div>
     );
   }
 
@@ -116,6 +131,9 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
       <div className="row row-space">
         <span className="label">
           {completed.size} of {board.pairs.length} pairs
+        </span>
+        <span className="sr-only" role="status">
+          Pairs completed: {completed.size} of {board.pairs.length}.
         </span>
         <ProgressBar
           value={completed.size}
@@ -144,7 +162,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   }`}
                   aria-pressed={selectedSourceId === pair.pairId}
                   disabled={completed.has(pair.pairId)}
-                  onClick={() => selectSource(pair.pairId)}
+                  onClick={(event) => selectSource(pair.pairId, event.currentTarget)}
                 >
                   {pair.source}
                 </button>
@@ -161,7 +179,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   type="button"
                   className={`match-item${completed.has(pair.pairId) ? " is-complete" : ""}`}
                   disabled={completed.has(pair.pairId)}
-                  onClick={() => selectTarget(pair.pairId)}
+                  onClick={(event) => selectTarget(pair.pairId, event.currentTarget)}
                 >
                   {pair.target}
                 </button>
