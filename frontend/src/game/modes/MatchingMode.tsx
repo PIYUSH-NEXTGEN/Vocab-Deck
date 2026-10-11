@@ -11,8 +11,10 @@ import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
 
 const FEEDBACK_MS = 1200;
+const PAIRS_PER_BATCH = 6;
 
 type Feedback = { tone: "correct" | "incorrect"; message: string } | null;
+type BatchAction = "next" | "results" | null;
 
 /**
  * Matching: pair source words with their translations. Both columns are
@@ -30,14 +32,41 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
     [deck.entries, rng],
   );
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [incorrectTargetId, setIncorrectTargetId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(() => new Set());
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [finished, setFinished] = useState(false);
+  const [currentBatch, setCurrentBatch] = useState(0);
+  const [batchAction, setBatchAction] = useState<BatchAction>(null);
   const feedbackTimer = useRef<number | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+  const batchActionRef = useRef<HTMLDivElement | null>(null);
+
+  const totalBatches = Math.ceil(board.pairs.length / PAIRS_PER_BATCH);
+  const batchStart = currentBatch * PAIRS_PER_BATCH;
+  const batchEnd = Math.min(batchStart + PAIRS_PER_BATCH, board.pairs.length);
+  const batchPairs = board.pairs.slice(batchStart, batchEnd);
+  const batchPairIds = new Set(batchPairs.map((p) => p.pairId));
+  const isLastBatch = currentBatch === totalBatches - 1;
+  const visibleLeft = board.left.filter((p) => batchPairIds.has(p.pairId));
+  const visibleRight = board.right.filter((p) => batchPairIds.has(p.pairId));
 
   useEffect(() => {
     if (finished) register(rise(summaryRef.current));
   }, [finished, register]);
+
+  useEffect(() => {
+    if (feedback && feedbackRef.current && typeof feedbackRef.current.scrollIntoView === "function") {
+      feedbackRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [feedback]);
+
+  useEffect(() => {
+    if (batchAction && batchActionRef.current && typeof batchActionRef.current.scrollIntoView === "function") {
+      batchActionRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [batchAction]);
 
   const clearFeedbackTimer = useCallback(() => {
     if (feedbackTimer.current !== null) {
@@ -51,14 +80,32 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
   const reset = useCallback(() => {
     clearFeedbackTimer();
     setSelectedSourceId(null);
+    setSelectedTargetId(null);
+    setIncorrectTargetId(null);
     setCompleted(new Set());
     setFeedback(null);
     setFinished(false);
+    setCurrentBatch(0);
+    setBatchAction(null);
   }, [clearFeedbackTimer]);
 
   function playAgain() {
     reset();
     reshuffle();
+  }
+
+  function handleBatchAction() {
+    setBatchAction(null);
+    setSelectedSourceId(null);
+    setSelectedTargetId(null);
+    setIncorrectTargetId(null);
+    clearFeedbackTimer();
+    setFeedback(null);
+    if (batchAction === "next") {
+      setCurrentBatch((prev) => prev + 1);
+    } else if (batchAction === "results") {
+      setFinished(true);
+    }
   }
 
   if (board.pairs.length < 2) {
@@ -75,9 +122,11 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
   }
 
   function selectSource(pairId: string, element: HTMLElement) {
-    if (completed.has(pairId)) return; // no re-matching completed pairs
+    if (completed.has(pairId)) return;
     clearFeedbackTimer();
     setFeedback(null);
+    setSelectedTargetId(null);
+    setIncorrectTargetId(null);
     setSelectedSourceId((current) => {
       if (current === pairId) return null;
       register(pop(element));
@@ -87,25 +136,39 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
 
   function selectTarget(pairId: string, element: HTMLElement) {
     if (!selectedSourceId || completed.has(pairId)) return;
+    setSelectedTargetId(pairId);
+    register(pop(element));
     if (pairId === selectedSourceId) {
       recordMatchAttempt(true);
       const nextCompleted = new Set(completed);
       nextCompleted.add(pairId);
       setCompleted(nextCompleted);
       setSelectedSourceId(null);
+      setSelectedTargetId(null);
+      setIncorrectTargetId(null);
       setFeedback({ tone: "correct", message: "Paired." });
       register(pulse(element));
       if (nextCompleted.size === board.pairs.length) {
         clearFeedbackTimer();
         setFinished(true);
+      } else {
+        const nextBatchCompleted = [...batchPairIds].filter((id) => nextCompleted.has(id)).length;
+        if (nextBatchCompleted === batchPairs.length) {
+          setBatchAction(isLastBatch ? "results" : "next");
+        }
       }
       return;
     }
     recordMatchAttempt(false);
     setSelectedSourceId(null);
+    setIncorrectTargetId(pairId);
     setFeedback({ tone: "incorrect", message: "Not a pair — try again." });
     register(shake(element));
-    feedbackTimer.current = window.setTimeout(() => setFeedback(null), FEEDBACK_MS);
+    feedbackTimer.current = window.setTimeout(() => {
+      setFeedback(null);
+      setIncorrectTargetId(null);
+      setSelectedTargetId(null);
+    }, FEEDBACK_MS);
   }
 
   if (finished) {
@@ -154,7 +217,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
         <div className="stack-tight">
           <span className="label">{languageName(deck.sourceLanguage)}</span>
           <ul className="match-column">
-            {board.left.map((pair) => (
+            {visibleLeft.map((pair) => (
               <li key={pair.pairId}>
                 <button
                   type="button"
@@ -176,11 +239,14 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
         <div className="stack-tight">
           <span className="label">{languageName(deck.targetLanguage)}</span>
           <ul className="match-column">
-            {board.right.map((pair) => (
+            {visibleRight.map((pair) => (
               <li key={pair.pairId}>
                 <button
                   type="button"
-                  className={`match-item${completed.has(pair.pairId) ? " is-complete" : ""}`}
+                  className={`match-item${completed.has(pair.pairId) ? " is-complete" : ""}${
+                    incorrectTargetId === pair.pairId ? " is-incorrect" : ""
+                  }${selectedTargetId === pair.pairId ? " is-selected" : ""}`}
+                  aria-pressed={selectedTargetId === pair.pairId}
                   disabled={completed.has(pair.pairId)}
                   onClick={(event) => selectTarget(pair.pairId, event.currentTarget)}
                 >
@@ -194,7 +260,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
         </div>
       </div>
 
-      <div aria-live="polite" className="match-feedback">
+      <div ref={feedbackRef} aria-live="polite" className="match-feedback">
         {feedback ? (
           <p className={feedback.tone === "correct" ? "notice" : "notice notice-error"}>
             {feedback.message}
@@ -207,6 +273,60 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
           </p>
         )}
       </div>
+
+      {batchAction && (
+        <div
+          ref={batchActionRef}
+          className="row"
+          style={{ justifyContent: "center", marginTop: "var(--space-6)", marginBottom: "var(--space-2)" }}
+        >
+          <Panel
+            className="stack"
+            style={{
+              padding: "var(--space-6)",
+              textAlign: "center",
+              maxWidth: "360px",
+              width: "100%",
+              boxShadow: "var(--shadow-3)",
+            }}
+          >
+            <h3 style={{ marginBottom: "var(--space-3)", fontSize: "var(--text-subheading)" }}>
+              {isLastBatch ? "Batch complete" : `Batch ${currentBatch + 1} complete`}
+            </h3>
+            <p className="muted" style={{ marginBottom: "var(--space-5)", lineHeight: 1.5 }}>
+              You completed all {batchPairs.length} pairs in this batch.
+            </p>
+            <div className="row" style={{ gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
+              {isLastBatch ? (
+                <Button
+                  variant="primary"
+                  onClick={handleBatchAction}
+                  style={{ minWidth: "150px", padding: "var(--space-3) var(--space-5)" }}
+                >
+                  See results
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setBatchAction(null)}
+                    style={{ minWidth: "130px", padding: "var(--space-3) var(--space-5)" }}
+                  >
+                    Stay here
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleBatchAction}
+                    style={{ minWidth: "150px", padding: "var(--space-3) var(--space-5)" }}
+                  >
+                    Next batch
+                  </Button>
+                </>
+              )}
+            </div>
+          </Panel>
+        </div>
+      )}
     </div>
   );
 }

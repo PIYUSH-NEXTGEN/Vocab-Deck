@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { SessionProvider } from "./session/SessionProvider";
+import { ThemeProvider } from "./theme/ThemeProvider";
 import { App } from "./App";
 import "./styles/tokens.css";
 import "./styles/global.css";
@@ -14,9 +15,11 @@ if (!container) throw new Error("Root container #root is missing from index.html
 createRoot(container).render(
   <StrictMode>
     <BrowserRouter>
-      <SessionProvider>
-        <App />
-      </SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
+          <App />
+        </SessionProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 );

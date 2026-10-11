@@ -130,7 +130,7 @@ export function PlayPage() {
         </div>
         {deck ? (
           <p className="faint play-meta-note">
-            {deck.entryCount} entries · {deck.origin === "custom" ? "custom deck" : "built-in deck"}
+            {deck.origin === "custom" ? "custom deck" : "built-in deck"}
           </p>
         ) : null}
         {deck?.description ? <p className="muted play-description">{deck.description}</p> : null}

@@ -14,6 +14,7 @@
   z-index: 10;
   background: var(--paper);
   border-bottom: 2px solid var(--border);
+  padding-bottom: var(--space-3);
 }
 
 .app-header-inner {
@@ -79,7 +80,7 @@
 .nav-link.is-active {
   background: var(--accent);
   border-color: var(--border);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .nav-link.is-active:hover {
@@ -177,11 +178,11 @@
 
 .btn-primary {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent);
+  background: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -202,7 +203,7 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger);
+  background: var(--danger-strong);
 }
 
 .btn-danger-outline {
@@ -333,7 +334,7 @@ button.deck-card:active {
 .chip-accent {
   background: var(--accent);
   border-color: var(--border);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .chip-correct {
@@ -469,7 +470,7 @@ button.deck-card:active {
 
 .segmented-option.is-active {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .segmented-hint {
@@ -672,7 +673,7 @@ select:focus {
 
 .mode-link.is-active {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 /* --- Vocabulary card --- */
@@ -709,7 +710,7 @@ select:focus {
 
 .flashcard-translation {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
   border: 2px solid var(--border);
   padding: 0.1rem 0.45rem;
   display: block;
@@ -760,7 +761,7 @@ select:focus {
 
 .option.is-selected {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .option:disabled {
@@ -773,7 +774,7 @@ select:focus {
 .option.option-correct {
   background: var(--accent);
   border-color: var(--border);
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
 .option.option-incorrect {
@@ -817,14 +818,21 @@ select:focus {
 
 .match-item.is-selected {
   background: var(--accent);
-  color: var(--ink);
+  color: var(--on-accent);
   box-shadow: var(--shadow-2);
 }
 
 .match-item.is-complete {
   background: var(--accent);
   border-color: var(--border);
-  color: var(--ink);
+  color: var(--on-accent);
+  cursor: default;
+}
+
+.match-item.is-incorrect {
+  background: var(--incorrect);
+  border-color: var(--incorrect);
+  color: var(--ink-inverse);
   cursor: default;
 }
 
@@ -1127,6 +1135,7 @@ select:focus {
 
 .swap-button[aria-pressed="true"] {
   background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* --- Home page rhythm --- */
@@ -1418,4 +1427,50 @@ select:focus {
 .round-size-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* --- Theme toggle --- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: var(--space-1);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition);
+}
+
+.theme-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-1);
+  background: var(--accent-soft);
+}
+
+.theme-toggle:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.theme-icon {
+  display: block;
+}
+
+/* Drawer row: restart action and theme toggle side by side */
+.drawer-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* The drawer's `hidden` attribute must win over its display rule (mobile nav
+   was always visible because `display: flex` overrode the UA [hidden] rule). */
+.app-nav-drawer[hidden] {
+  display: none;
 }

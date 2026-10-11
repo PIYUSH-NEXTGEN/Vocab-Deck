@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { buildFlashcardOrder } from "../engine";
 import { useSessionSeed } from "../useSessionSeed";
@@ -12,6 +12,9 @@ import { ProgressBar } from "../../components/ProgressBar";
 
 type Result = "correct" | "incorrect" | null;
 
+/** Max entries a single typing round can contain. */
+const MAX_ROUND = 25;
+
 /**
  * Typing: type the translation. Comparison is Unicode-aware (NFC), case- and
  * whitespace-insensitive, accent handling is an explicit setting, and an entry's
@@ -24,10 +27,14 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const { rng, reshuffle } = useSessionSeed(seed);
-  const order = useMemo(
+  const fullOrder = useMemo(
     () => buildFlashcardOrder(deck.entries, rng),
     [deck.entries, rng],
   );
+  const [roundSize, setRoundSize] = useState(() => Math.min(fullOrder.length, MAX_ROUND));
+  const [sizeInput, setSizeInput] = useState(() => String(Math.min(fullOrder.length, MAX_ROUND)));
+  const maxRound = Math.min(fullOrder.length, MAX_ROUND);
+  const order = useMemo(() => fullOrder.slice(0, Math.min(roundSize, maxRound)), [fullOrder, roundSize, maxRound]);
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +59,31 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     setError(null);
     setResult(null);
   }, [index]);
+
+  const changeRoundSize = useCallback(
+    (next: number) => {
+      setRoundSize(next);
+      setSizeInput(String(next));
+      reshuffle();
+      setIndex(0);
+      setError(null);
+      setResult(null);
+    },
+    [],
+  );
+
+  const commitRoundSize = useCallback(
+    (raw: string) => {
+      const parsed = Number(raw.trim());
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxRound) {
+        setSizeInput(String(Math.min(roundSize, maxRound)));
+        return;
+      }
+      if (parsed !== roundSize) changeRoundSize(parsed);
+      else setSizeInput(String(parsed));
+    },
+    [changeRoundSize, maxRound, roundSize],
+  );
 
   function submit() {
     if (input.trim().length === 0) {
@@ -95,9 +127,36 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
   return (
     <div className="stack">
-      <div className="row row-space">
+      <div className="row row-space round-controls">
         <span className="label">
           Entry {index + 1} of {order.length}
+        </span>
+        <span className="row round-size">
+          <label className="label" htmlFor="typing-round-size">
+            Entries this round
+          </label>
+          <input
+            id="typing-round-size"
+            className="round-size-input"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={maxRound}
+            step={1}
+            value={sizeInput}
+            aria-describedby="typing-round-size-hint"
+            onChange={(event) => setSizeInput(event.target.value)}
+            onBlur={(event) => commitRoundSize(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitRoundSize((event.target as HTMLInputElement).value);
+              }
+            }}
+          />
+          <span className="faint" id="typing-round-size-hint">
+            1–{maxRound}
+          </span>
         </span>
         <ProgressBar value={index} max={order.length} label={`${index} typed`} />
       </div>

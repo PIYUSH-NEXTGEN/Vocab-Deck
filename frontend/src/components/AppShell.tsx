@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { AppFooter } from "./AppFooter";
+import { ThemeToggle } from "./ThemeToggle";
 
 /**
  * Every route change starts a new screen, so reset the scroll position once the
@@ -75,11 +76,15 @@ export function AppShell() {
                 hidden={!menuOpen}
               >
                 {navLinks}
+                <span className="drawer-row">
+                  <ThemeToggle />
+                </span>
               </nav>
             </>
           ) : (
             <nav className="app-nav app-nav-floating" aria-label="Primary">
               {navLinks}
+              <ThemeToggle />
             </nav>
           )}
         </div>

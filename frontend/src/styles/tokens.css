@@ -2,6 +2,8 @@
    Cream paper + dot grid, hard black borders, blur-free offset shadows,
    blue accent, square corners. Two fonts, three sizes. */
 :root {
+  color-scheme: light;
+
   /* Paper + ink */
   --paper: #f4f0e4;          /* page: warm cream */
   --paper-raised: #fffff0;   /* surfaces: ivory */
@@ -18,6 +20,7 @@
 
   /* Accent: calm sky blue for fills, selection and focus; deep blue for text on paper */
   --accent: #8bbde4;
+  --accent-hover: #8bbde4;
   --accent-deep: #245d94;    /* links, active text on cream (kept dark for contrast) */
   --accent-soft: #e3f0fa;    /* tinted surface */
   --focus-ring: #5b9bd5;     /* keyboard focus halo */
@@ -70,6 +73,9 @@
   --shadow-3: 6px 6px 0 var(--border);
   --shadow-pressed: 0px 0px 0 var(--border);
 
+  /* Text used on accent fills (kept dark in both themes for contrast) */
+  --on-accent: #141414;
+
   /* Footer: dark, muted blue-slate surface with ivory text */
   --footer-bg: #26333f;
   --footer-ink: #fffff0;
@@ -86,4 +92,44 @@
   --nav-height: 3.25rem; /* slim header; the pill floats clear of the rule */
   --shell-max: 72rem;
   --measure: 68ch;
+}
+
+/* Dark theme: a deep neutral "night" palette (charcoal, not navy).
+   Borders are visible but never glaring; the blue accent is calm and deep so
+   fills don't shine, with a light blue reserved for text and links. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #101013;
+  --paper-raised: #1a1a1e;
+  --paper-sunken: #0c0c0f;
+  --paper-inset: #08080a;
+  --ink: #e9e5db;
+  --ink-soft: #a6a29a;
+  --ink-faint: #7c7871;
+  --ink-inverse: #101013;
+
+  /* Soft charcoal borders: defined edges without the white glare */
+  --border: #45454b;
+  --border-hairline: rgba(233, 229, 219, 0.16);
+
+  --accent: #5b8fc9;
+  --accent-hover: #6d9dd4;
+  --accent-deep: #9dc2ea;
+  --accent-soft: #212631;
+  --focus-ring: #9dc2ea;
+  --on-accent: #0d0d10;
+
+  --danger: #d95448;
+  --danger-strong: #e5685c;
+  --danger-soft: #331f1c;
+
+  --footer-bg: #0a0a0c;
+  --footer-ink: #e9e5db;
+  --footer-ink-soft: rgba(233, 229, 219, 0.72);
+  --footer-ink-faint: rgba(233, 229, 219, 0.55);
+  --footer-border: rgba(233, 229, 219, 0.18);
+  --footer-accent: #9dc2ea;
+
+  --dot-color: rgba(233, 229, 219, 0.09);
 }
