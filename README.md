@@ -61,11 +61,12 @@ explicitly ("Wrong service on the API port") instead of a bare 404.
 ## Test and check
 
 ```
-cd backend && python -m pytest        # API, schemas, loader, migrated-vocabulary tests
+cd backend && python -m pytest        # API, schemas, loader, built-in deck tests
 cd frontend && npm run typecheck      # tsc --noEmit
 cd frontend && npm run lint           # eslint
 cd frontend && npm test               # vitest + Testing Library
-npm run build                         # production build (tsc + vite)
+cd frontend && npm run build          # production build (tsc + vite)
+cd frontend && npm run test:e2e       # Playwright end-to-end suite
 ```
 
 ## Data and deployments notes
@@ -77,3 +78,4 @@ npm run build                         # production build (tsc + vite)
 - Gameplay progress is session-only and memory-resident; reloading the tab resets it.
 - CORS is configured with the `CORS_ORIGINS` env var (comma-separated; `*` allows all).
 - Full design, API contract and the Tkinter migration record: `docs/architecture.md`.
+- Deployment, API reference, data formats and operations: `docs/deployment.md`.

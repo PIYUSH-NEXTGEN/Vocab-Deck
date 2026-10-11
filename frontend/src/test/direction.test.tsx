@@ -9,6 +9,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { PlayableDeck } from "../api/types";
 import { App } from "../App";
 import { SessionProvider } from "../session/SessionProvider";
+import { ThemeProvider } from "../theme/ThemeProvider";
 import { reverseDeck } from "../lib/deckItems";
 import { saveCustomDeck } from "../storage/customDecks";
 import type { CustomDeckDocument } from "../api/types";
@@ -33,9 +34,11 @@ const CUSTOM_DECK: CustomDeckDocument = {
 function renderAppAt(route: string) {
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
         <App />
-      </SessionProvider>
+        </SessionProvider>
+      </ThemeProvider>
     </MemoryRouter>,
   );
 }

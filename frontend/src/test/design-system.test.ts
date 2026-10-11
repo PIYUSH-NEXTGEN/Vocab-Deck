@@ -84,3 +84,29 @@ test("every CSS variable used in the stylesheets is defined", () => {
   const missing = [...used].filter((name) => !defined.has(name));
   expect(missing).toEqual([]);
 });
+
+test("the dark theme defines a complete, non-inverted palette", () => {
+  const dark = tokens.slice(tokens.indexOf(':root[data-theme="dark"]'));
+  for (const token of [
+    "--paper:",
+    "--paper-raised:",
+    "--ink:",
+    "--border:",
+    "--accent:",
+    "--accent-hover:",
+    "--accent-deep:",
+    "--on-accent:",
+    "--danger:",
+    "--dot-color:",
+  ]) {
+    expect(dark).toContain(token);
+  }
+  // Night palette: deep neutral background, calm (not neon) accent.
+  expect(dark).toMatch(/--paper: #101013/);
+  expect(dark).toMatch(/--accent: #5b8fc9/);
+  // Borders must stay subdued on dark surfaces (no white glare).
+  expect(dark).toMatch(/--border: #45454b/);
+  // Text on accent fills stays dark for contrast in both themes.
+  expect(tokens).toMatch(/--on-accent: #141414/);
+  expect(dark).toMatch(/--on-accent: #0d0d10/);
+});

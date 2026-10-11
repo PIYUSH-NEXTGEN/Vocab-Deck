@@ -2,13 +2,16 @@ import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider } from "../session/SessionProvider";
+import { ThemeProvider } from "../theme/ThemeProvider";
 import { vi } from "vitest";
 import type { DeckListResponseDto } from "../api/types";
 
 export function renderApp(ui: ReactElement, route = "/") {
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <SessionProvider>{ui}</SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>{ui}</SessionProvider>
+      </ThemeProvider>
     </MemoryRouter>,
   );
 }

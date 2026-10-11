@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { CustomDeckDocument, PlayableDeck } from "../api/types";
 import { App } from "../App";
 import { SessionProvider } from "../session/SessionProvider";
+import { ThemeProvider } from "../theme/ThemeProvider";
 import { FlashcardsMode } from "../game/modes/FlashcardsMode";
 import { QuizMode } from "../game/modes/QuizMode";
 import { TypingMode } from "../game/modes/TypingMode";
@@ -50,9 +51,11 @@ const PLAYABLE_CUSTOM: PlayableDeck = {
 function renderAppAt(route: string) {
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
         <App />
-      </SessionProvider>
+        </SessionProvider>
+      </ThemeProvider>
     </MemoryRouter>,
   );
 }

@@ -223,6 +223,7 @@ frontend/src/
   game/       rng (seeded), text (NFC/case/whitespace/accents), engine (pure builders),
               modes/ (FlashcardsMode, QuizMode, TypingMode, MatchingMode)
   components/ Button, Panel, Chip, DeckCard, SessionStatsBar, AppShell, states, ...
+  theme/     ThemeProvider + useTheme (light/dark, localStorage + prefers-color-scheme)
   pages/      HomePage (deck + language-pair selection), LibraryPage (built-in vs custom,
               import/export/create), AboutPage (what it is, how to use, how it works),
               DeckEditorPage (create/edit), PlayPage (deck resolution + mode routing)
@@ -342,6 +343,12 @@ screens, forms), `motion.css` (3D card flip + feedback keyframes +
 prefers-reduced-motion). Vocabulary card: bordered ivory surface, hard shadow,
 dotted language label, word at `--text-word`, translation on a green marker
 block; flip is CSS-only, reduced motion swaps faces instead of rotating.
+
+Theming: `ThemeProvider` stores an explicit light/dark choice in localStorage
+(`vocabdeck.theme`), falls back to `prefers-color-scheme`, and an inline script
+in `index.html` applies it before first paint so there is no flash. Dark mode is
+a deep neutral "night" palette (`--paper: #101013`) with subdued charcoal
+borders, a calm blue accent and dark text on accent fills — not an inversion.
 
 Limitations: webfonts load from Google Fonts (offline falls back to system
 mono); the flip's back face is absolutely positioned, so an unusually long
