@@ -16,14 +16,6 @@ Intended for: language learners, students, and anyone building vocabulary in a n
 
 ---
 
-## Problem Statement
-
-- **Problem:** Existing flashcard apps either lock content behind subscriptions, require accounts, or hardcode a single language pair. The original Tkinter prototype mixed gameplay progress with canonical vocabulary data (overwriting the deck file on every session), hardcoded French/English, and had no extensibility.
-- **Existing gap:** No lightweight, account-free tool that separates vocabulary data from progress, supports arbitrary language pairs out of the box, and lets users own their custom decks locally.
-- **Approach:** Split into a stateless FastAPI backend serving version-controlled deck files, and a React SPA that owns all gameplay state in memory and custom decks in `localStorage`. No database, no auth, no server-side progress.
-
----
-
 ## Features
 
 - **Four study modes** — Flashcards (with 3D flip), Multiple-choice Quiz, Typing (accent-insensitive option), Matching
@@ -34,18 +26,6 @@ Intended for: language learners, students, and anyone building vocabulary in a n
 - **Accessibility** — `prefers-reduced-motion` swaps flip for instant face swap; focus-visible outlines; semantic HTML
 - **Offline-capable custom decks** — Stored in `localStorage`, portable via JSON/CSV export
 - **Typed API contract** — Shared TypeScript/Pydantic schemas; frontend client maps DTOs to domain types
-
----
-
-## Demo
-
-<!-- Add screenshots, GIFs, or a live demo link here -->
-
-| Home (deck selection) | Play (Flashcards mode) | Library (custom decks) |
-|---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Play](docs/screenshots/play.png) | ![Library](docs/screenshots/library.png) |
-
-*Run locally to see the app in action (see [Getting Started](#getting-started)).*
 
 ---
 
@@ -254,10 +234,7 @@ flowchart TB
 | **ESLint + TypeScript** | Linting, type-checking |
 | **CSS Custom Properties** | Design tokens, theming, no build-time CSS framework |
 
-**Non-obvious choices:**
-- No CSS framework — tokens + components CSS keeps bundle small (~28 kB CSS gzipped)
-- No state library — React Context + pure functions for game engine
-- No database — deck files are the source of truth, loaded at startup
+- No database deck files are the source of truth, loaded at startup
 
 ---
 
@@ -469,18 +446,6 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 - **Content Security Policy:** Not configured; static host should add one.
 - **Vulnerability Reporting:** Open an issue or email the maintainer privately.
 
----
-
-## Limitations
-
-- **Progress is session-only** — reloading the tab clears all stats (by design).
-- **Custom decks are browser-local** — stored in `localStorage` (~5 MB limit); no cross-device sync. Export/import for portability.
-- **Built-in decks require redeploy** — deck files are in git; adding decks means a new backend deploy.
-- **Fonts from Google Fonts** — offline/restricted networks fall back to system mono; consider self-hosting for production.
-- **Matching mode drops ambiguous translations** — reported to user, but reduces entry count for that mode.
-- **Flip animation back face** is absolutely positioned; very long translations may overflow (reduced-motion mode flows naturally).
-- **No merge/dedup** between custom and built-in decks.
-- **CSV round-trip** derives new entry IDs from source text; not stable across JSON↔CSV.
 
 ---
 
@@ -509,23 +474,3 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 5. Open a PR with a clear description and screenshots for UI changes
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) if it exists; otherwise follow the above.
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Acknowledgements
-
-- **Design system** inspired by the reference neo-brutalist UI kit (technical/editorial aesthetic)
-- **Fonts:** Pixelify Sans, Space Mono, Noto Sans Mono JP (via Google Fonts)
-- **Animation:** CSS-only 3D flip with `prefers-reduced-motion` support
-- **Original Tkinter app** — the 100 Days of Code project that started it all
-- **Open source:** FastAPI, React, Vite, Vitest, Playwright, Pydantic, TypeScript, ESLint
-
----
-
-Built to solve a specific problem. Maintained with care.
