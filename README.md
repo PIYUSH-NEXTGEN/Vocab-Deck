@@ -445,18 +445,6 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 
 ---
 
-## Roadmap
-
-- [ ] Add spaced-repetition scheduling (SM-2) as optional session mode
-- [ ] Support deck sharing via URL-encoded export (compressed JSON in hash fragment)
-- [ ] Add audio/TTS integration for pronunciation
-- [ ] Self-hosted font option (download Google Fonts at build)
-- [ ] Deck analytics (mastery heatmap, weak words)
-- [ ] Mobile-first PWA manifest + service worker for offline play
-- [ ] Additional built-in language pairs (ES, IT, PT, KO, ZH)
-
----
-
 ## Contributing
 
 1. Fork the repo
@@ -468,5 +456,3 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
    ```
 4. Commit with conventional messages: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
 5. Open a PR with a clear description and screenshots for UI changes
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) if it exists; otherwise follow the above.
