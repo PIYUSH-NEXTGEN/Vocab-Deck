@@ -6,29 +6,7 @@
 
 ---
 
-## Table of Contents
 
-- [Overview](#overview)
-- [Problem Statement](#problem-statement)
-- [Features](#features)
-- [Demo](#demo)
-- [How It Works](#how-it-works)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Codebase Structure](#codebase-structure)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Testing](#testing)
-- [Performance](#performance)
-- [Security](#security)
-- [Limitations](#limitations)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-
----
 
 ## Overview
 
