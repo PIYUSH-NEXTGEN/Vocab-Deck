@@ -64,22 +64,20 @@ Intended for: language learners, students, and anyone building vocabulary in a n
 ### System Architecture
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph Browser["Browser (React SPA)"]
-        direction TB
-        UI["UI Components\n(Pages, Modes, Shell)"]
-        Engine["Game Engine\n(rng, text, builders)"]
-        Session["SessionProvider\n(in-memory stats)"]
-        Storage["localStorage\n(custom decks, theme)"]
-        APIClient["Typed API Client\n(DTO → domain)"]
+        UI["UI Components"]
+        Engine["Game Engine"]
+        Session["SessionProvider"]
+        Storage["localStorage"]
+        APIClient["API Client"]
     end
 
-    subgraph Backend["FastAPI Backend (Python)"]
-        direction TB
-        Routes["Routes\n/api/decks, /api/health"]
-        Loader["Deck Loader\n(JSON, CSV+meta)"]
-        Decks["Deck Files\nbackend/app/data/decks/"]
-        Validation["Pydantic Validation\n(startup + runtime)"]
+    subgraph Backend["FastAPI Backend"]
+        Routes["Routes /api"]
+        Loader["Deck Loader"]
+        Decks["Deck Files"]
+        Validation["Validation"]
     end
 
     UI --> Engine
@@ -92,10 +90,9 @@ flowchart TB
     Loader --> Decks
     Loader --> Validation
     Validation --> Routes
-    Routes --> APIClient
 
-    classDef browser fill:#f4f0e4,stroke:#141414,stroke-width:2px;
-    classDef backend fill:#e8f4fd,stroke:#2f6ea5,stroke-width:2px;
+    classDef browser fill:#333,stroke:#999,stroke-width:2px,color:#fff;
+    classDef backend fill:#222,stroke:#888,stroke-width:2px,color:#fff;
     class Browser,UI,Engine,Session,Storage,APIClient browser;
     class Backend,Routes,Loader,Decks,Validation backend;
 ```
@@ -184,18 +181,18 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph Startup["Startup"]
-        Main["main.py\ncreate_app()"]
-        Config["config.py\nSettings (CORS, env)"]
-        Loader["loader.py\nload_decks()"]
-        DecksDir["data/decks/\n*.json, *.csv + .meta.json"]
-        Validation["Validation Rules\n(id, lang, content)"]
+        Main["main.py"]
+        Config["config.py"]
+        Loader["loader.py"]
+        DecksDir["data/decks/"]
+        Validation["Validation"]
     end
 
     subgraph Runtime["Runtime"]
-        Routes["Routes\n/api/health, /api/decks*"]
-        Errors["errors.py\nApiError → HTTP"]
-        CORS["CORSMiddleware\nfrom Settings"]
-        Store["DeckStore\nin app.state"]
+        Routes["Routes"]
+        Errors["errors.py"]
+        CORS["CORS"]
+        Store["DeckStore"]
     end
 
     Main --> Config
@@ -208,10 +205,9 @@ flowchart TB
     Main --> Routes
     Routes --> Store
     Routes --> Errors
-    Errors --> Routes
 
-    classDef startup fill:#fff8e1,stroke:#141414,stroke-width:2px;
-    classDef runtime fill:#e8f4fd,stroke:#2f6ea5,stroke-width:2px;
+    classDef startup fill:#333,stroke:#999,stroke-width:2px,color:#fff;
+    classDef runtime fill:#222,stroke:#888,stroke-width:2px,color:#fff;
     class Startup,Main,Config,Loader,DecksDir,Validation startup;
     class Runtime,Routes,Errors,CORS,Store runtime;
 ```
