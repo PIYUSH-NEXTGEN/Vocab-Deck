@@ -110,12 +110,16 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
         <div className="flashcard-flipper">
           <div className="flashcard-face flashcard-face-front" aria-hidden="true">
             <span className="label">{languageName(deck.sourceLanguage)}</span>
-            <p className="flashcard-word">{entry.source}</p>
+            <p className="flashcard-word lang-text" lang={deck.sourceLanguage}>
+              {entry.source}
+            </p>
             <p className="faint">The translation appears automatically after 3 seconds.</p>
           </div>
           <div className="flashcard-face flashcard-face-back" aria-hidden="true">
             <span className="label">{languageName(deck.targetLanguage)}</span>
-            <p className="flashcard-word flashcard-translation">{entry.target}</p>
+            <p className="flashcard-word flashcard-translation lang-text" lang={deck.targetLanguage}>
+              {entry.target}
+            </p>
             {entry.alternatives.length > 0 ? (
               <p className="faint">Also accepted: {entry.alternatives.join(", ")}</p>
             ) : null}

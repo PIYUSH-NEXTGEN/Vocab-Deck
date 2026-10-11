@@ -107,7 +107,9 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
 
       <Panel className="stack quiz-prompt">
         <span className="label">{languageName(deck.sourceLanguage)}</span>
-        <p className="flashcard-word">{round.entry.source}</p>
+        <p className="flashcard-word lang-text" lang={deck.sourceLanguage}>
+          {round.entry.source}
+        </p>
         <span className="label">
           Choose the {languageName(deck.targetLanguage)} translation
         </span>
@@ -133,34 +135,38 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
                 disabled={submitted}
                 onClick={() => setSelected(option)}
               >
-                {option}
+                <span className="lang-text" lang={deck.targetLanguage}>
+                  {option}
+                </span>
               </button>
             </li>
           );
         })}
       </ul>
 
-      {submitted ? (
-        <div className="stack" role="status" ref={feedbackRef}>
-          <p className={selected === round.answer ? "notice" : "notice notice-error"}>
-            {selected === round.answer
-              ? "Correct."
-              : `Not quite — "${round.answer}" is the translation.`}
-          </p>
-          <div className="row">
-            <Button variant="primary" onClick={next}>
-              {index + 1 >= rounds.length ? "See results" : "Next question"}
-            </Button>
+      <div className="quiz-feedback stack">
+        {submitted ? (
+          <div className="stack" role="status" ref={feedbackRef}>
+            <p className={selected === round.answer ? "notice" : "notice notice-error"}>
+              {selected === round.answer
+                ? "Correct."
+                : `Not quite — "${round.answer}" is the translation.`}
+            </p>
+            <div className="row">
+              <Button variant="primary" onClick={next}>
+                {index + 1 >= rounds.length ? "See results" : "Next question"}
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="row">
-          <Button variant="primary" onClick={submit} disabled={selected === null}>
-            Submit answer
-          </Button>
-          {selected === null ? <span className="faint">Select an option first.</span> : null}
-        </div>
-      )}
+        ) : (
+          <div className="row quiz-submit-row">
+            <Button variant="primary" onClick={submit} disabled={selected === null}>
+              Submit answer
+            </Button>
+            {selected === null ? <span className="faint">Select an option first.</span> : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

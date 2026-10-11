@@ -5,7 +5,7 @@ import type { PlayableDeck } from "../api/types";
 import { useAsync } from "../api/useAsync";
 import { getCustomDeck } from "../storage/customDecks";
 import { toPlayableDeck } from "../decks/validate";
-import { GAME_MODES, gameModeLabel, isGameModeId } from "../game/modes";
+import { GAME_MODES, isGameModeId } from "../game/modes";
 import { playHref } from "../lib/deckItems";
 import { FlashcardsMode } from "../game/modes/FlashcardsMode";
 import { QuizMode } from "../game/modes/QuizMode";
@@ -13,6 +13,7 @@ import { TypingMode } from "../game/modes/TypingMode";
 import { MatchingMode } from "../game/modes/MatchingMode";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
+import { SessionStatsBar } from "../components/SessionStatsBar";
 import { Spinner } from "../components/Spinner";
 import { LanguageChip } from "../components/Chip";
 
@@ -97,13 +98,13 @@ export function PlayPage() {
   return (
     <div className="shell page">
       <header className="stack-tight">
-        <Link className="link-button" to="/">
+        <Link className="link-button play-back" to="/">
           ← All decks
         </Link>
         <div className="row row-space">
           <h1>{deck ? deck.name : "Loading deck"}</h1>
           {deck ? (
-            <span className="row">
+            <span className="row play-meta">
               <LanguageChip code={deck.sourceLanguage} />
               <span aria-hidden="true">→</span>
               <LanguageChip code={deck.targetLanguage} />
@@ -113,6 +114,7 @@ export function PlayPage() {
             </span>
           ) : null}
         </div>
+        {deck?.description ? <p className="muted play-description">{deck.description}</p> : null}
       </header>
 
       <nav className="mode-nav" aria-label="Practice modes">
@@ -128,8 +130,12 @@ export function PlayPage() {
         ))}
       </nav>
 
-      <span className="faint">{gameModeLabel(mode)}</span>
-      {body}
+      <div className="practice-column">{body}</div>
+
+      <section className="session-summary stack-tight" aria-label="Session summary">
+        <span className="label">Session summary</span>
+        <SessionStatsBar />
+      </section>
     </div>
   );
 }

@@ -30,6 +30,16 @@ export function DeckEditorPage() {
   if (!deckId) {
     return (
       <div className="shell page">
+        <header className="stack-tight">
+          <button type="button" className="link-button play-back" onClick={() => navigate("/library")}>
+            ← Deck library
+          </button>
+          <h1>New custom deck</h1>
+          <p className="muted measure">
+            Name your deck, pick its language pair, then add entries. It is stored in this
+            browser only.
+          </p>
+        </header>
         <CustomDeckEditor {...editorProps} />
       </div>
     );
@@ -38,6 +48,15 @@ export function DeckEditorPage() {
   if (existing) {
     return (
       <div className="shell page">
+        <header className="stack-tight">
+          <button type="button" className="link-button play-back" onClick={() => navigate("/library")}>
+            ← Deck library
+          </button>
+          <h1>Edit deck</h1>
+          <p className="muted measure">
+            Changes are saved to this browser. The deck id and entry ids are preserved.
+          </p>
+        </header>
         <CustomDeckEditor deck={existing} {...editorProps} />
       </div>
     );

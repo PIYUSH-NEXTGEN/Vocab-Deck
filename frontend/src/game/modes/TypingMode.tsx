@@ -103,7 +103,9 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
       <Panel className="stack typing-prompt">
         <span className="label">{languageName(deck.sourceLanguage)}</span>
-        <p className="flashcard-word">{entry.source}</p>
+        <p className="flashcard-word lang-text" lang={deck.sourceLanguage}>
+          {entry.source}
+        </p>
       </Panel>
 
       <form
@@ -122,7 +124,10 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
             disabled={result !== null}
             aria-invalid={error !== null}
             autoComplete="off"
+            autoCapitalize="none"
             spellCheck={false}
+            lang={deck.targetLanguage}
+            enterKeyHint="done"
             placeholder="Type the translation"
           />
         </label>
@@ -137,32 +142,34 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
           <span>Ignore accents and diacritics when checking answers</span>
         </label>
 
-        {error ? (
-          <p className="notice notice-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-      {result !== null ? (
-        <div className="stack" role="status" ref={feedbackRef}>
-          <p className={result === "correct" ? "notice" : "notice notice-error"}>
-              {result === "correct"
-                ? "Correct."
-                : `Not quite — accepted: ${acceptedAnswers(entry).join(", ")}`}
+        <div className="typing-feedback stack">
+          {error ? (
+            <p className="notice notice-error" role="alert">
+              {error}
             </p>
+          ) : null}
+
+          {result !== null ? (
+            <div className="stack" role="status" ref={feedbackRef}>
+              <p className={result === "correct" ? "notice" : "notice notice-error"}>
+                {result === "correct"
+                  ? "Correct."
+                  : `Not quite — accepted: ${acceptedAnswers(entry).join(", ")}`}
+              </p>
+              <div className="row">
+                <Button variant="primary" type="submit">
+                  {index + 1 >= order.length ? "See results" : "Next entry"}
+                </Button>
+              </div>
+            </div>
+          ) : (
             <div className="row">
-              <Button variant="primary" type="submit">
-                {index + 1 >= order.length ? "See results" : "Next entry"}
+              <Button variant="primary" onClick={submit}>
+                Check answer
               </Button>
             </div>
-          </div>
-        ) : (
-          <div className="row">
-            <Button variant="primary" onClick={submit}>
-              Check answer
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </form>
     </div>
   );

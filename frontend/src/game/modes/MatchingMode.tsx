@@ -164,7 +164,9 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   disabled={completed.has(pair.pairId)}
                   onClick={(event) => selectSource(pair.pairId, event.currentTarget)}
                 >
-                  {pair.source}
+                  <span className="lang-text" lang={deck.sourceLanguage}>
+                    {pair.source}
+                  </span>
                 </button>
               </li>
             ))}
@@ -181,7 +183,9 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   disabled={completed.has(pair.pairId)}
                   onClick={(event) => selectTarget(pair.pairId, event.currentTarget)}
                 >
-                  {pair.target}
+                  <span className="lang-text" lang={deck.targetLanguage}>
+                    {pair.target}
+                  </span>
                 </button>
               </li>
             ))}
