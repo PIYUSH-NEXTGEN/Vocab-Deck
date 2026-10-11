@@ -38,7 +38,7 @@
   border: 2px solid var(--border);
   border-radius: 999px;
   box-shadow: var(--shadow-2);
-  padding: var(--space-1) var(--space-7);
+  padding: var(--space-1) var(--space-5);
 }
 
 .app-nav {
@@ -52,8 +52,8 @@
   align-items: center;
   text-decoration: none;
   color: var(--ink);
-  line-height: 1.2;
-  padding: var(--space-1) var(--space-5);
+  line-height: 1.1;
+  padding: var(--space-1) var(--space-4);
   border: 2px solid transparent;
   border-radius: 999px;
   font-weight: 700;
@@ -87,37 +87,6 @@
   box-shadow: var(--shadow-2);
 }
 
-.nav-action {
-  border: 2px dashed var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
-  font-weight: 700;
-  font-size: var(--text-body);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-  padding: var(--space-1) var(--space-4);
-  cursor: pointer;
-  transition: transform var(--transition), background var(--transition),
-    border-style var(--transition);
-}
-
-.nav-action:hover {
-  border-style: solid;
-  background: var(--paper-sunken);
-  transform: translateY(-2px);
-}
-
-.nav-action:active {
-  transform: translateY(1px);
-}
-
-.drawer-divider {
-  border: 0;
-  border-top: 1px dashed var(--border-hairline);
-  margin: var(--space-1) 0;
-}
 
 .app-nav-drawer {
   position: absolute;
@@ -134,10 +103,8 @@
   padding: var(--space-3);
 }
 
-.app-nav-drawer .nav-link,
-.app-nav-drawer .nav-action {
+.app-nav-drawer .nav-link {
   border-radius: var(--radius-l);
-  margin-left: 0;
   text-align: left;
 }
 
@@ -165,10 +132,7 @@
   flex: 1;
 }
 
-.app-footer {
-  border-top: 2px solid var(--border);
-  padding-block: var(--space-4);
-}
+
 
 /* --- Buttons --- */
 .btn {
@@ -229,6 +193,26 @@
   border-style: dashed;
   box-shadow: none;
   color: var(--ink-soft);
+}
+
+/* Destructive actions: red, matching the incorrect-feedback tone */
+.btn-danger {
+  background: var(--danger);
+  color: var(--ink-inverse);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+}
+
+.btn-danger-outline {
+  background: var(--paper-raised);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--danger-soft);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -322,13 +306,6 @@ button.deck-card:active {
   display: block;
   font-size: var(--text-subheading);
   font-weight: 700;
-}
-
-.deck-description {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .deck-meta {
@@ -715,7 +692,7 @@ select:focus {
 
 .flashcard-word {
   font-family: var(--font-display);
-  font-size: var(--text-heading);
+  font-size: var(--text-word);
   font-weight: 700;
   line-height: 1.25;
   margin: 0;
@@ -723,12 +700,21 @@ select:focus {
   word-break: break-word;
 }
 
+/* Both faces must render the word at exactly the same size. */
+.flashcard-face-front .flashcard-word,
+.flashcard-face-back .flashcard-word {
+  font-size: var(--text-word);
+  line-height: 1.25;
+}
+
 .flashcard-translation {
   background: var(--accent);
   color: var(--ink);
   border: 2px solid var(--border);
-  padding: 0.1em 0.35em;
-  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .flashcard-face-back .flashcard-translation {
@@ -782,13 +768,15 @@ select:focus {
   opacity: 1;
 }
 
-.option-correct {
+/* Feedback tones outrank the selected tone: `.option.option-*` (0,2,0) and
+   declared after `.option.is-selected`, so a wrong pick stays red. */
+.option.option-correct {
   background: var(--accent);
   border-color: var(--border);
   color: var(--ink);
 }
 
-.option-incorrect {
+.option.option-incorrect {
   background: var(--incorrect);
   border-color: var(--border);
   color: var(--ink-inverse);
@@ -908,14 +896,11 @@ select:focus {
 
 /* Contrast guarantee: nothing grey may sit on an accent fill. */
 .nav-link.is-active,
-.nav-action,
 .mode-link.is-active,
 .segmented-option.is-active,
 .segmented-option.is-active .segmented-hint,
 .chip-accent,
 .btn-primary,
-.option.is-selected,
-.option-correct,
 .match-item.is-selected,
 .match-item.is-complete,
 .flashcard-translation {
@@ -967,8 +952,7 @@ select:focus {
 
 /* Consistent interactive sizing (desktop; mobile raises targets to 44px). */
 .btn,
-.mode-link,
-.nav-action {
+.mode-link {
   min-height: 2.5rem;
 }
 
@@ -1060,4 +1044,378 @@ select:focus {
 .manage-name {
   font-weight: 700;
   overflow-wrap: anywhere;
+}
+
+/* --- About page --- */
+.about-header {
+  padding-block: var(--space-7) var(--space-5);
+  gap: var(--space-4);
+}
+
+.about-steps {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.about-steps li::marker {
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.about-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.about-card {
+  height: 100%;
+}
+
+.about-columns {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.about-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* --- Study direction toggle --- */
+.direction-toggle {
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Small direction swap button (icon-only, accessible name provided) */
+.swap-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  font-size: var(--text-body);
+  line-height: 1;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition);
+}
+
+.swap-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-2);
+  background: var(--accent-soft);
+}
+
+.swap-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-pressed);
+}
+
+.swap-button[aria-pressed="true"] {
+  background: var(--accent);
+}
+
+/* --- Home page rhythm --- */
+.hero {
+  padding-block: var(--space-8) var(--space-6);
+}
+
+/* The rule under the hero gets breathing room on both sides. */
+.page > .rule {
+  margin-block: var(--space-2);
+}
+
+/* Deck selection: comfortable grouping of heading, filter and grid. */
+.section-head {
+  margin-bottom: var(--space-2);
+}
+
+.deck-grid {
+  gap: var(--space-5);
+}
+
+/* --- Expanded practice section --- */
+.practice-panel {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-2);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  scroll-margin-top: calc(var(--nav-height) + var(--space-5));
+}
+
+.practice-panel:focus {
+  outline: none;
+}
+
+.practice-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.practice-meta {
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.practice-intro {
+  border-top: 1px dashed var(--border-hairline);
+  padding-top: var(--space-4);
+  max-width: var(--measure);
+}
+
+.practice-panel .mode-grid {
+  gap: var(--space-4);
+}
+
+.practice-panel .mode-card {
+  min-height: 11.5rem;
+  padding: var(--space-5);
+  gap: var(--space-3);
+}
+
+/* --- Wider screens: heading and meta share a row --- */
+@media (min-width: 720px) {
+  .practice-head {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-5);
+  }
+}
+
+/* --- Product footer (dark surface) --- */
+.app-footer {
+  margin-top: var(--space-8);
+  background: var(--footer-bg);
+  color: var(--footer-ink);
+  border-top: 2px solid var(--border);
+  background-image: radial-gradient(rgba(255, 255, 240, 0.07) 1px, transparent 1px);
+  background-size: var(--dot-size) var(--dot-size);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  padding-block: var(--space-7) var(--space-6);
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 34rem;
+}
+
+.footer-brand-link {
+  text-decoration: none;
+  color: var(--footer-ink);
+}
+
+.footer-brand-link:hover {
+  color: var(--footer-accent);
+}
+
+.footer-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-subheading);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.footer-brand-text {
+  color: var(--footer-ink-soft);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  max-width: 42ch;
+}
+
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.footer-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--footer-ink);
+  margin: 0;
+}
+
+.footer-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer-links a {
+  color: var(--footer-ink-soft);
+  text-decoration: none;
+  font-size: var(--text-body);
+  line-height: 1.4;
+  padding-block: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+  transition: color var(--transition);
+}
+
+.footer-icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
+.footer-links a:hover {
+  color: var(--footer-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--footer-border);
+}
+
+.footer-bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-block: var(--space-4);
+}
+
+.footer-note {
+  color: var(--footer-ink-faint);
+  font-size: 0.78rem;
+  max-width: none;
+}
+
+.footer-top-link {
+  color: var(--footer-ink-soft);
+  font-size: var(--text-body);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color var(--transition);
+}
+
+.footer-top-link:hover {
+  color: var(--footer-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Tablet: two brand + link columns */
+@media (max-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+
+  .footer-brand {
+    max-width: 46ch;
+  }
+}
+
+/* Mobile: single column, compact */
+@media (max-width: 640px) {
+  .app-footer {
+    margin-top: var(--space-7);
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+    padding-block: var(--space-6) var(--space-5);
+  }
+
+  .footer-bottom-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+
+/* Anchor targets clear the sticky header */
+#decks,
+#modes,
+.practice-panel {
+  scroll-margin-top: calc(var(--nav-height) + var(--space-5));
+}
+
+/* --- Play header: title row + meta note --- */
+.play-title-row {
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.play-meta {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.play-meta-note {
+  margin: 0;
+}
+
+/* --- Flashcard round controls --- */
+.round-controls {
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.round-size {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.round-size select {
+  width: auto;
+  min-width: 4rem;
+}
+
+.round-size-input {
+  width: 4.5rem;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.round-size-input::-webkit-outer-spin-button,
+.round-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

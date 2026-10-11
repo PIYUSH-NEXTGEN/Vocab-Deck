@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 const tokens = readFileSync(resolve(process.cwd(), "src/styles/tokens.css"), "utf8");
 const components = readFileSync(resolve(process.cwd(), "src/styles/components.css"), "utf8");
 const global = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
+const motion = readFileSync(resolve(process.cwd(), "src/styles/motion.css"), "utf8");
 
 test("tokens define the calm blue accent, dot grid and hard shadows", () => {
   expect(tokens).toMatch(/--accent: #8bbde4/);
@@ -23,10 +24,10 @@ test("tokens define the calm blue accent, dot grid and hard shadows", () => {
   expect(tokens).toMatch(/--radius-s: 0px/);
 });
 
-test("only two font families are defined (soft pixel display + mono)", () => {
-  expect(tokens).toMatch(/--font-pixel: "Pixelify Sans"/);
+test("one mono family, no pixel or dotted display faces", () => {
   expect(tokens).toMatch(/--font-mono: "Space Mono"/);
-  expect(tokens).toMatch(/Noto Sans Mono JP/);
+  expect(tokens).toMatch(/--font-display: var\(--font-mono\)/);
+  expect(tokens).not.toMatch(/Doto|Silkscreen|Pixelify/);
 });
 
 test("the type scale is the documented set of tokens", () => {
@@ -34,6 +35,7 @@ test("the type scale is the documented set of tokens", () => {
     "--text-hero:",
     "--text-heading:",
     "--text-section:",
+    "--text-word:",
     "--text-subheading:",
     "--text-body:",
   ]) {
@@ -41,7 +43,7 @@ test("the type scale is the documented set of tokens", () => {
   }
   // No ad-hoc sizes outside the scale.
   for (const css of [components, global]) {
-    expect(css).not.toMatch(/--text-(xs|s|l|xl|2xl|word|m)[:\s)]/);
+    expect(css).not.toMatch(/--text-(xs|s|l|xl|2xl|m)[:\s)]/);
   }
 });
 
@@ -67,4 +69,18 @@ test("quiz and matching feedback states are defined", () => {
   expect(components).toMatch(/\.option-correct/);
   expect(components).toMatch(/\.option-incorrect/);
   expect(components).toMatch(/\.match-item\.is-complete/);
+});
+
+test("every CSS variable used in the stylesheets is defined", () => {
+  const defined = new Set(
+    Array.from(tokens.matchAll(/--[\w-]+(?=\s*:)/g)).map((match) => match[0]),
+  );
+  const used = new Set<string>();
+  for (const css of [components, global, motion]) {
+    for (const match of css.matchAll(/var\((--[\w-]+)[,)]/g)) {
+      used.add(match[1]);
+    }
+  }
+  const missing = [...used].filter((name) => !defined.has(name));
+  expect(missing).toEqual([]);
 });

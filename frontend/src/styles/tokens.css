@@ -22,22 +22,26 @@
   --accent-soft: #e3f0fa;    /* tinted surface */
   --focus-ring: #5b9bd5;     /* keyboard focus halo */
 
-  /* Feedback: correct shares the accent, incorrect is brick red */
+  /* Feedback: correct shares the accent; danger/incorrect is brick red */
   --correct: var(--accent);
   --correct-soft: var(--accent-soft);
-  --incorrect: #c8261b;
-  --incorrect-soft: #fbe3e1;
+  --danger: #c8261b;
+  --danger-strong: #a81f16;
+  --danger-soft: #fbe3e1;
+  --incorrect: var(--danger);
+  --incorrect-soft: var(--danger-soft);
 
-  /* Typography: two families */
-  --font-pixel: "Pixelify Sans", var(--font-mono);     /* main headings only */
+  /* Typography: one mono family; hierarchy comes from weight and size */
   --font-mono: "Space Mono", "Noto Sans Mono JP", ui-monospace, "Cascadia Mono",
-    Consolas, monospace;                              /* everything else */
+    Consolas, monospace;
   --font-display: var(--font-mono);
 
   /* Type scale: hero > page heading > section heading > sub-heading > body */
   --text-hero: clamp(2.6rem, 2.1rem + 2.6vw, 4.2rem);
   --text-heading: clamp(1.9rem, 1.6rem + 1.8vw, 3rem);
   --text-section: clamp(1.35rem, 1.2rem + 0.6vw, 1.7rem);
+  /* Vocabulary words (flashcard faces, quiz and typing prompts) */
+  --text-word: clamp(1.75rem, 1.45rem + 1.3vw, 2.4rem);
   --text-subheading: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
   --text-body: 0.95rem;
 
@@ -66,12 +70,20 @@
   --shadow-3: 6px 6px 0 var(--border);
   --shadow-pressed: 0px 0px 0 var(--border);
 
+  /* Footer: dark, muted blue-slate surface with ivory text */
+  --footer-bg: #26333f;
+  --footer-ink: #fffff0;
+  --footer-ink-soft: rgba(255, 255, 240, 0.74);
+  --footer-ink-faint: rgba(255, 255, 240, 0.58);
+  --footer-border: rgba(255, 255, 240, 0.22);
+  --footer-accent: #8bbde4;
+
   /* Paper dot grid */
   --dot-color: rgba(20, 20, 20, 0.12);
   --dot-size: 22px;
 
   --transition: 120ms steps(2, end);
-  --nav-height: 3.75rem; /* slim header; the pill floats clear of the rule */
+  --nav-height: 3.25rem; /* slim header; the pill floats clear of the rule */
   --shell-max: 72rem;
   --measure: 68ch;
 }

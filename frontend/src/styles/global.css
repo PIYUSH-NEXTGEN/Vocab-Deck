@@ -38,8 +38,8 @@ h3 {
 /* Headings use the soft pixel face at a light weight; sub-headings stay mono. */
 h1,
 h2 {
-  font-family: var(--font-pixel);
-  font-weight: 400; /* lightest pixel weight = smoothest rendering */
+  font-family: var(--font-display);
+  font-weight: 600; /* Doto: smooth strokes, dot detail at the corners */
   letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -78,11 +78,19 @@ textarea {
   color: inherit;
 }
 
-/* Keyboard focus: black outline + green halo, visible on every surface */
+/* Keyboard focus: black outline + blue halo, visible on every surface */
 :focus-visible {
   outline: 2px solid var(--border);
   outline-offset: 2px;
   box-shadow: 0 0 0 5px var(--focus-ring);
+}
+
+/* Form controls keep the black outline only — the halo reads as clutter
+   around inputs and selects, and the outline alone is clearly visible. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: none;
 }
 
 code,
