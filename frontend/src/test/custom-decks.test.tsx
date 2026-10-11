@@ -137,7 +137,7 @@ test("a foreign server on the API port produces an actionable error", async () =
   try {
     await listDecks();
   } catch (error) {
-    expect((error as Error).message).toMatch(/not the Flash Card Game API/i);
+    expect((error as Error).message).toMatch(/not the Vocab Deck API/i);
     expect((error as Error).message).toMatch(/uvicorn app\.main:app --port 8000/);
   }
 });

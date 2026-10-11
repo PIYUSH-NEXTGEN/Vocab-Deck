@@ -1,8 +1,11 @@
-import type { DeckListItem } from "../lib/deckItems";
-import { Panel } from "./Panel";
-import { Chip } from "./Chip";
 import { languagePairLabel } from "../lang/display";
+import { Chip } from "./Chip";
+import type { DeckListItem } from "../lib/deckItems";
 
+/**
+ * Deck card: the entire surface is the control, so clicking anywhere on the
+ * card opens/selects the deck. Selection state is exposed with aria-pressed.
+ */
 export function DeckCard({
   deck,
   selected = false,
@@ -15,37 +18,34 @@ export function DeckCard({
   onSelect?: (deck: DeckListItem) => void;
 }) {
   return (
-    <Panel
-      as="li"
-      className={`deck-card${selected ? " is-selected" : ""}`}
-      aria-current={selected ? "true" : undefined}
-    >
-      <div className="stack-tight">
-        <div className="row row-space">
-          <h3 className="deck-title">{deck.name}</h3>
-          <Chip tone={deck.origin === "builtin" ? "neutral" : "accent"}>
-            {deck.origin === "builtin" ? "Built-in" : "Custom"}
-          </Chip>
-        </div>
-        <p className="faint">{languagePairLabel(deck.sourceLanguage, deck.targetLanguage)}</p>
-        {deck.description ? <p className="muted deck-description">{deck.description}</p> : null}
-      </div>
-      <div className="row row-space deck-meta">
-        <span className="label">{deck.entryCount} entries</span>
-        <span className="row">
-          {readOnly ? <Chip>Read-only</Chip> : null}
-          {onSelect ? (
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => onSelect(deck)}
-              aria-pressed={selected}
-            >
-              {selected ? "Selected" : "Select deck"}
-            </button>
+    <li className="deck-card-item">
+      <button
+        type="button"
+        className={`deck-card panel${selected ? " is-selected" : ""}`}
+        aria-pressed={onSelect ? selected : undefined}
+        aria-label={`${selected ? "Deselect" : "Select"} deck ${deck.name}`}
+        onClick={() => onSelect?.(deck)}
+      >
+        <span className="stack-tight deck-card-body">
+          <span className="row row-space">
+            <span className="deck-title">{deck.name}</span>
+            <Chip tone={deck.origin === "builtin" ? "neutral" : "accent"}>
+              {deck.origin === "builtin" ? "Built-in" : "Custom"}
+            </Chip>
+          </span>
+          <span className="faint">{languagePairLabel(deck.sourceLanguage, deck.targetLanguage)}</span>
+          {deck.description ? (
+            <span className="muted deck-description">{deck.description}</span>
           ) : null}
         </span>
-      </div>
-    </Panel>
+        <span className="row row-space deck-meta">
+          <span className="label">{deck.entryCount} entries</span>
+          <span className="row">
+            {readOnly ? <Chip>Read-only</Chip> : null}
+            {selected ? <Chip tone="accent">Selected</Chip> : null}
+          </span>
+        </span>
+      </button>
+    </li>
   );
 }

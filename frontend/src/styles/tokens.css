@@ -1,7 +1,6 @@
 /* Design tokens: technical-editorial / neo-brutalist system.
    Cream paper + dot grid, hard black borders, blur-free offset shadows,
-   bright green accent, square corners, monospace typography.
-   Extracted from the reference styleguide and adapted for vocabulary study. */
+   blue accent, square corners. Two fonts, three sizes. */
 :root {
   /* Paper + ink */
   --paper: #f4f0e4;          /* page: warm cream */
@@ -17,30 +16,30 @@
   --border: #141414;         /* component outline */
   --border-hairline: #cccccc; /* dividers inside surfaces */
 
-  /* Accent: bright green for fills/selection; deep green for text on paper */
-  --accent: #00ff00;
-  --accent-deep: #006b00;    /* links, active text on cream */
-  --accent-soft: #d9ffd9;    /* tinted surface */
-  --focus-ring: #00ff00;     /* keyboard focus halo */
+  /* Accent: calm sky blue for fills, selection and focus; deep blue for text on paper */
+  --accent: #8bbde4;
+  --accent-deep: #245d94;    /* links, active text on cream (kept dark for contrast) */
+  --accent-soft: #e3f0fa;    /* tinted surface */
+  --focus-ring: #5b9bd5;     /* keyboard focus halo */
 
-  /* Feedback */
-  --correct: #00913d;
-  --correct-soft: #d8f5e3;
+  /* Feedback: correct shares the accent, incorrect is brick red */
+  --correct: var(--accent);
+  --correct-soft: var(--accent-soft);
   --incorrect: #c8261b;
   --incorrect-soft: #fbe3e1;
 
-  /* Typography: one mono family with a Japanese-capable fallback */
+  /* Typography: two families */
+  --font-pixel: "Pixelify Sans", var(--font-mono);     /* main headings only */
   --font-mono: "Space Mono", "Noto Sans Mono JP", ui-monospace, "Cascadia Mono",
-    Consolas, monospace;
+    Consolas, monospace;                              /* everything else */
   --font-display: var(--font-mono);
 
-  --text-xs: 0.72rem;   /* compact labels (uppercase, tracked) */
-  --text-s: 0.82rem;
-  --text-m: 0.95rem;    /* base UI text */
-  --text-l: 1.12rem;
-  --text-xl: 1.5rem;
-  --text-2xl: clamp(1.7rem, 1.4rem + 1.2vw, 2.4rem);
-  --text-word: clamp(1.6rem, 1.3rem + 1.6vw, 2.3rem); /* vocabulary words */
+  /* Type scale: hero > page heading > section heading > sub-heading > body */
+  --text-hero: clamp(2.6rem, 2.1rem + 2.6vw, 4.2rem);
+  --text-heading: clamp(1.9rem, 1.6rem + 1.8vw, 3rem);
+  --text-section: clamp(1.35rem, 1.2rem + 0.6vw, 1.7rem);
+  --text-subheading: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+  --text-body: 0.95rem;
 
   --leading-tight: 1.15;
   --leading-normal: 1.55;
@@ -72,7 +71,7 @@
   --dot-size: 22px;
 
   --transition: 120ms steps(2, end);
-  --nav-height: 4rem;
+  --nav-height: 3.75rem; /* slim header; the pill floats clear of the rule */
   --shell-max: 72rem;
   --measure: 68ch;
 }

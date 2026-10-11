@@ -1,4 +1,4 @@
-# Flash Card Game — Architecture & Migration Plan
+# Vocab Deck — Architecture & Migration Plan
 
 Status: approved. Scope of this document: audit of the Tkinter app, target data model, API
 contract, error behavior, and migration rules. Implementation in this stage covers the
@@ -313,15 +313,17 @@ reproducing its layout. Design DNA extracted:
 
 - **Palette**: cream paper `#F4F0E4` with a subtle dot grid, ivory surfaces
   `#FFFFF0`, primary text `#333333`, secondary `#666666`, hairline `#CCCCCC`,
-  component borders `#141414`, bright green accent `#00FF00` (fills,
-  selection, focus halo) with a deep green `#006B00` for text on paper.
+  component borders `#141414`, calm sky-blue accent `#8BBDE4` (fills,
+  selection, focus halo) with a deep blue `#2F6EA5` for text on paper.
 - **Borders/elevation**: 2px solid black component outlines; blur-free offset
   shadows (`2/4/6px 0 #141414`); hover lifts, press sinks. No soft shadows,
   no gradients.
 - **Geometry**: square by default (radius 0-4px); no pill controls.
-- **Typography**: Space Mono (Latin display + UI) with Noto Sans Mono JP as the
-  Japanese fallback; uppercase tracked labels for metadata, natural casing and
-  full Unicode for vocabulary words; `--text-word` scale with `overflow-wrap`.
+- **Typography**: two families — Pixelify Sans (soft pixel face) for main headings
+  (`h1`/`h2` and the brand), Space Mono for everything else with Noto Sans Mono
+  JP as the Japanese fallback; only three sizes (`--text-heading`,
+  `--text-subheading`, `--text-body`); uppercase tracked labels for metadata,
+  natural casing and full Unicode for vocabulary words with `overflow-wrap`.
 - **States**: hover (lift), active (press), focus-visible (black outline + green
   halo), disabled (dashed border, sunken), selected (green fill), correct
   (green fill / left border), incorrect (brick red, shake).

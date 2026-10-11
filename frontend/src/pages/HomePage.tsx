@@ -39,18 +39,18 @@ export function HomePage() {
 
   return (
     <div className="shell page">
-      <header className="home-intro stack">
-        <p className="label">Vocabulary practice</p>
-        <h1>Study a deck, your way.</h1>
-        <p className="muted measure">
-          Pick a built-in deck or one of your own, choose a language pair, then train with
-          flashcards, a multiple-choice quiz, typing, or matching. Progress during a session is
-          remembered in this tab only.
+      <header className="hero stack">
+        <h1 className="hero-title">Vocab Deck</h1>
+        <p className="muted hero-description">
+          Practice any language pair with flashcards, quizzes, typing and matching.
+          Built-in decks come from the API; your own stay in this browser.
         </p>
       </header>
 
-      <section className="stack" aria-labelledby="deck-selection-heading">
-        <div className="row row-space">
+      <hr className="rule" />
+
+      <section className="section" aria-labelledby="deck-selection-heading">
+        <div className="section-head">
           <h2 id="deck-selection-heading">Choose a deck</h2>
           <label className="row pair-filter">
             <span className="label">Language pair</span>
@@ -103,14 +103,14 @@ export function HomePage() {
       </section>
 
       {selected ? (
-        <section className="stack mode-selection" aria-labelledby="mode-selection-heading">
+        <section className="section mode-selection" aria-labelledby="mode-selection-heading">
           <div className="stack-tight">
             <h2 id="mode-selection-heading">Practice {selected.name}</h2>
             <p className="faint row">
               <LanguageChip code={selected.sourceLanguage} />
               <span aria-hidden="true">→</span>
               <LanguageChip code={selected.targetLanguage} />
-              <span>· {selected.entryCount} entries</span>
+              <span className="section-note">· {selected.entryCount} entries</span>
             </p>
           </div>
           <ul className="mode-grid">

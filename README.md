@@ -1,4 +1,4 @@
-# Flash Card Game
+# Vocab Deck
 
 A vocabulary practice app: choose a deck (any language pair), then train with
 flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was

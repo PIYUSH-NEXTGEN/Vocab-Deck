@@ -12,7 +12,7 @@ test("home -> library navigation works", async () => {
   const user = userEvent.setup();
   renderApp(<App />);
 
-  expect(await screen.findByRole("heading", { name: /study a deck/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /vocab deck/i })).toBeInTheDocument();
 
   await user.click(screen.getByRole("link", { name: /deck library/i }));
 
@@ -21,14 +21,14 @@ test("home -> library navigation works", async () => {
   expect(await screen.findByText(DECK_DTOS[0].name)).toBeInTheDocument();
 });
 
-test("brand link navigates home", async () => {
+test("home link navigates back from the library", async () => {
   stubDeckList(DECK_DTOS);
   const user = userEvent.setup();
   renderApp(<App />, "/library");
 
-  await user.click(screen.getByRole("link", { name: /flash card game home/i }));
+  await user.click(screen.getByRole("link", { name: /^home$/i }));
 
-  expect(await screen.findByRole("heading", { name: /study a deck/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /vocab deck/i })).toBeInTheDocument();
 });
 
 test("unknown route renders not found", async () => {

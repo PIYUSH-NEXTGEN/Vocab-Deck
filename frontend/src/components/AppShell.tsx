@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { SessionStatsBar } from "./SessionStatsBar";
+import { useSession } from "../session/useSession";
 
 const NAV_ITEMS = [
   { to: "/", label: "Home" },
@@ -12,20 +12,33 @@ export function AppShell() {
   const isCompact = useMediaQuery("(max-width: 640px)");
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const { restart } = useSession();
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  const navLinks = NAV_ITEMS.map((item) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      end={item.to === "/"}
+      className={({ isActive }) => `nav-link${isActive ? " is-active" : ""}`}
+    >
+      {item.label}
+    </NavLink>
+  ));
+
+  const restartButton = (
+    <button type="button" className="nav-action" onClick={restart}>
+      Restart session
+    </button>
+  );
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="shell app-header-inner">
-          <NavLink to="/" className="brand" aria-label="Flash Card Game home">
-            <span className="brand-mark" aria-hidden="true" />
-            <span className="brand-name">Flash Card Game</span>
-          </NavLink>
-
           {isCompact ? (
             <>
               <button
@@ -39,42 +52,25 @@ export function AppShell() {
               </button>
               <nav
                 id="primary-navigation"
-                className={`app-nav${menuOpen ? " is-open" : ""}`}
+                className={`app-nav app-nav-drawer${menuOpen ? " is-open" : ""}`}
                 aria-label="Primary"
                 hidden={!menuOpen}
               >
-                {NAV_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.to === "/"}
-                    className={({ isActive }) => `nav-link${isActive ? " is-active" : ""}`}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
+                {navLinks}
+                <hr className="drawer-divider" />
+                {restartButton}
               </nav>
             </>
           ) : (
-            <nav className="app-nav" aria-label="Primary">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/"}
-                  className={({ isActive }) => `nav-link${isActive ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
+            <div className="app-nav-floating">
+              <nav className="app-nav" aria-label="Primary">
+                {navLinks}
+              </nav>
+              {restartButton}
+            </div>
           )}
         </div>
       </header>
-
-      <div className="shell session-shell">
-        <SessionStatsBar compact={isCompact} />
-      </div>
 
       <main className="app-main">
         <Outlet />

@@ -12,8 +12,9 @@ const tokens = readFileSync(resolve(process.cwd(), "src/styles/tokens.css"), "ut
 const components = readFileSync(resolve(process.cwd(), "src/styles/components.css"), "utf8");
 const global = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
 
-test("tokens define the reference palette, dot grid and hard shadows", () => {
-  expect(tokens).toMatch(/--accent: #00ff00/);
+test("tokens define the calm blue accent, dot grid and hard shadows", () => {
+  expect(tokens).toMatch(/--accent: #8bbde4/);
+  expect(tokens).toMatch(/--accent-deep: #245d94/);
   expect(tokens).toMatch(/--paper: #f4f0e4/);
   expect(tokens).toMatch(/--paper-raised: #fffff0/);
   expect(tokens).toMatch(/--border: #141414/);
@@ -22,15 +23,38 @@ test("tokens define the reference palette, dot grid and hard shadows", () => {
   expect(tokens).toMatch(/--radius-s: 0px/);
 });
 
-test("typography stack covers accented Latin and Japanese text", () => {
-  expect(tokens).toMatch(/Space Mono/);
+test("only two font families are defined (soft pixel display + mono)", () => {
+  expect(tokens).toMatch(/--font-pixel: "Pixelify Sans"/);
+  expect(tokens).toMatch(/--font-mono: "Space Mono"/);
   expect(tokens).toMatch(/Noto Sans Mono JP/);
 });
 
-test("components use mono uppercase labels and square geometry", () => {
+test("the type scale is the documented set of tokens", () => {
+  for (const token of [
+    "--text-hero:",
+    "--text-heading:",
+    "--text-section:",
+    "--text-subheading:",
+    "--text-body:",
+  ]) {
+    expect(tokens).toContain(token);
+  }
+  // No ad-hoc sizes outside the scale.
+  for (const css of [components, global]) {
+    expect(css).not.toMatch(/--text-(xs|s|l|xl|2xl|word|m)[:\s)]/);
+  }
+});
+
+test("chrome stays square while navigation uses rounded pills", () => {
   expect(components).toMatch(/text-transform: uppercase/);
   expect(components).toMatch(/letter-spacing: var\(--tracking-label\)/);
-  expect(components).not.toMatch(/border-radius: 999px/);
+  // Panels, buttons and answer options stay square...
+  expect(components).toMatch(/\.panel \{[^}]*border-radius: var\(--radius-m\)/);
+  expect(components).toMatch(/\.btn \{[^}]*border-radius: var\(--radius-s\)/);
+  expect(components).toMatch(/\.option \{[^}]*border-radius: var\(--radius-s\)/);
+  // ...while the navbar and its actions are rounded pills.
+  expect(components).toMatch(/\.app-nav-floating \{[^}]*border-radius: 999px/);
+  expect(components).toMatch(/\.nav-link \{[^}]*border-radius: 999px/);
 });
 
 test("focus is visible on every surface (black outline + green halo)", () => {

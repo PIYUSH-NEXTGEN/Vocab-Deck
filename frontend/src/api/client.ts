@@ -61,7 +61,7 @@ async function readErrorBody(response: Response): Promise<ErrorBody | null> {
 function foreignServerMessage(status: number, body: ErrorBody | null): string {
   if (body && "detail" in body) {
     return (
-      `The server at ${baseUrl()} is not the Flash Card Game API ` +
+      `The server at ${baseUrl()} is not the Vocab Deck API ` +
       `(it replied ${status}: ${JSON.stringify(body.detail)}). ` +
       "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL."
     );
