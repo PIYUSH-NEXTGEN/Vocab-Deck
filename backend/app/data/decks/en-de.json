@@ -1,0 +1,216 @@
+{
+  "id": "en-de",
+  "name": "English to German",
+  "description": "25 everyday English words with German translations.",
+  "source_language": "en",
+  "target_language": "de",
+  "entries": [
+    {
+      "id": "water",
+      "source": "water",
+      "target": "Wasser",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "bread",
+      "source": "bread",
+      "target": "Brot",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "book",
+      "source": "book",
+      "target": "Buch",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "house",
+      "source": "house",
+      "target": "Haus",
+      "alternatives": [
+        "Zuhause"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "cat",
+      "source": "cat",
+      "target": "Katze",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "dog",
+      "source": "dog",
+      "target": "Hund",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "friend",
+      "source": "friend",
+      "target": "Freund",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "school",
+      "source": "school",
+      "target": "Schule",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "table",
+      "source": "table",
+      "target": "Tisch",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "chair",
+      "source": "chair",
+      "target": "Stuhl",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "door",
+      "source": "door",
+      "target": "Tür",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "window",
+      "source": "window",
+      "target": "Fenster",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "apple",
+      "source": "apple",
+      "target": "Apfel",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "milk",
+      "source": "milk",
+      "target": "Milch",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "sun",
+      "source": "sun",
+      "target": "Sonne",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "moon",
+      "source": "moon",
+      "target": "Mond",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "tree",
+      "source": "tree",
+      "target": "Baum",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "car",
+      "source": "car",
+      "target": "Auto",
+      "alternatives": [
+        "Wagen"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "city",
+      "source": "city",
+      "target": "Stadt",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "road",
+      "source": "road",
+      "target": "Straße",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "hand",
+      "source": "hand",
+      "target": "Hand",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "eye",
+      "source": "eye",
+      "target": "Auge",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "day",
+      "source": "day",
+      "target": "Tag",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "night",
+      "source": "night",
+      "target": "Nacht",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "love",
+      "source": "love",
+      "target": "Liebe",
+      "tags": [
+        "noun",
+        "verb"
+      ]
+    }
+  ]
+}

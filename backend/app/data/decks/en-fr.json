@@ -1,0 +1,213 @@
+{
+  "id": "en-fr",
+  "name": "English to French",
+  "description": "25 everyday English words with French translations.",
+  "source_language": "en",
+  "target_language": "fr",
+  "entries": [
+    {
+      "id": "water",
+      "source": "water",
+      "target": "eau",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "bread",
+      "source": "bread",
+      "target": "pain",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "book",
+      "source": "book",
+      "target": "livre",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "house",
+      "source": "house",
+      "target": "maison",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "cat",
+      "source": "cat",
+      "target": "chat",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "dog",
+      "source": "dog",
+      "target": "chien",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "friend",
+      "source": "friend",
+      "target": "ami",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "school",
+      "source": "school",
+      "target": "école",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "table",
+      "source": "table",
+      "target": "table",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "chair",
+      "source": "chair",
+      "target": "chaise",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "door",
+      "source": "door",
+      "target": "porte",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "window",
+      "source": "window",
+      "target": "fenêtre",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "apple",
+      "source": "apple",
+      "target": "pomme",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "milk",
+      "source": "milk",
+      "target": "lait",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "sun",
+      "source": "sun",
+      "target": "soleil",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "moon",
+      "source": "moon",
+      "target": "lune",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "tree",
+      "source": "tree",
+      "target": "arbre",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "car",
+      "source": "car",
+      "target": "voiture",
+      "alternatives": [
+        "auto"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "city",
+      "source": "city",
+      "target": "ville",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "road",
+      "source": "road",
+      "target": "route",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "hand",
+      "source": "hand",
+      "target": "main",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "eye",
+      "source": "eye",
+      "target": "œil",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "day",
+      "source": "day",
+      "target": "jour",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "night",
+      "source": "night",
+      "target": "nuit",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "love",
+      "source": "love",
+      "target": "amour",
+      "tags": [
+        "noun",
+        "verb"
+      ]
+    }
+  ]
+}

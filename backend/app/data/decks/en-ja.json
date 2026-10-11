@@ -1,0 +1,273 @@
+{
+  "id": "en-ja",
+  "name": "English to Japanese",
+  "description": "25 everyday English words with Japanese translations.",
+  "source_language": "en",
+  "target_language": "ja",
+  "entries": [
+    {
+      "id": "water",
+      "source": "water",
+      "target": "水",
+      "alternatives": [
+        "みず"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "bread",
+      "source": "bread",
+      "target": "パン",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "book",
+      "source": "book",
+      "target": "本",
+      "alternatives": [
+        "ほん"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "house",
+      "source": "house",
+      "target": "家",
+      "alternatives": [
+        "いえ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "cat",
+      "source": "cat",
+      "target": "猫",
+      "alternatives": [
+        "ねこ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "dog",
+      "source": "dog",
+      "target": "犬",
+      "alternatives": [
+        "いぬ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "friend",
+      "source": "friend",
+      "target": "友達",
+      "alternatives": [
+        "ともだち"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "school",
+      "source": "school",
+      "target": "学校",
+      "alternatives": [
+        "がっこう"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "table",
+      "source": "table",
+      "target": "テーブル",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "chair",
+      "source": "chair",
+      "target": "椅子",
+      "alternatives": [
+        "いす"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "door",
+      "source": "door",
+      "target": "ドア",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "window",
+      "source": "window",
+      "target": "窓",
+      "alternatives": [
+        "まど"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "apple",
+      "source": "apple",
+      "target": "りんご",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "milk",
+      "source": "milk",
+      "target": "牛乳",
+      "alternatives": [
+        "ぎゅうにゅう"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "sun",
+      "source": "sun",
+      "target": "太陽",
+      "alternatives": [
+        "たいよう"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "moon",
+      "source": "moon",
+      "target": "月",
+      "alternatives": [
+        "つき"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "tree",
+      "source": "tree",
+      "target": "木",
+      "alternatives": [
+        "き"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "car",
+      "source": "car",
+      "target": "車",
+      "alternatives": [
+        "くるま"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "city",
+      "source": "city",
+      "target": "都市",
+      "alternatives": [
+        "とし"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "road",
+      "source": "road",
+      "target": "道",
+      "alternatives": [
+        "みち"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "hand",
+      "source": "hand",
+      "target": "手",
+      "alternatives": [
+        "て"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "eye",
+      "source": "eye",
+      "target": "目",
+      "alternatives": [
+        "め"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "day",
+      "source": "day",
+      "target": "日",
+      "alternatives": [
+        "ひ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "night",
+      "source": "night",
+      "target": "夜",
+      "alternatives": [
+        "よる"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "love",
+      "source": "love",
+      "target": "愛",
+      "alternatives": [
+        "あい"
+      ],
+      "tags": [
+        "noun",
+        "verb"
+      ]
+    }
+  ]
+}

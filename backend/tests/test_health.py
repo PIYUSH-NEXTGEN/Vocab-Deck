@@ -9,7 +9,7 @@ def test_health_ok(real_client):
     body = response.json()
     assert body["status"] == "ok"
     assert body["version"]
-    assert body["deck_count"] == 2  # fr-en-common + de-ja-starter
+    assert body["deck_count"] == 3  # en-ja/de/fr-essentials
 
 
 def test_health_is_json(real_client):

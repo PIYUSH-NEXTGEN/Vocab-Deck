@@ -68,9 +68,8 @@ flash-card-game/
       schemas.py            # request/response models (pydantic)
       errors.py             # domain errors -> HTTP responses
       loader.py             # deck discovery + validation (JSON and CSV decks)
-      data/decks/           # version-controlled built-in decks
-        fr-en-common.csv + fr-en-common.meta.json
-        de-ja-starter.json
+      data/decks/           # version-controlled built-in decks (JSON documents)
+        en-fr.json  en-de.json  en-ja.json
     tests/                  # pytest + httpx (TestClient); includes the migrated-vocabulary
                              # regression fixture (test_migration_fidelity.py)
     pyproject.toml
@@ -194,6 +193,12 @@ is version-controlled in `backend/app/data/decks/`, guarded by
    ("French → English Common Words"), shipped as `data/decks/fr-en-common.csv` +
    `.meta.json` (the migration ran once via a now-removed one-shot script; its report and
    rules are below).
+2. **Deck refresh (later):** the built-in library now ships three 25-entry decks —
+   `en-fr`, `en-de` and `en-ja` — each covering the same
+   25 everyday English words so pairs are directly comparable. Kana readings, umlauts,
+   the eszett and the French œ ligature are preserved; translations are unique within
+   each deck so quiz and matching stay unambiguous. Guarded by
+   `backend/tests/test_builtin_decks.py`.
 2. Entry IDs = ASCII slug of the French word (`frère` → `frere`); collisions suffixed.
 3. **Documented corrections** (recorded in the migration report and asserted by tests):
    - `Warning` → `warning`, `Wait` → `wait`, `Stop` → `stop`, `Earth` → `earth`
@@ -204,8 +209,8 @@ is version-controlled in `backend/app/data/decks/`, guarded by
 4. **Documented exclusions**: `words_to_learn.csv` and `known_words` were progress
    artifacts from the Tkinter app and were intentionally not migrated; progress is
    session-only in the redesign.
-5. Second built-in deck `de-ja-starter` (German → Japanese, JSON format) proves
-   arbitrary/non-Latin pairs and exercises Unicode validation.
+5. Japanese coverage proves arbitrary/non-Latin pairs and exercises Unicode validation
+   (kanji targets with kana alternatives accepted by the typing mode).
 
 ## 6. Frontend (React + TypeScript + Vite) — implemented stages
 
@@ -219,7 +224,8 @@ frontend/src/
               modes/ (FlashcardsMode, QuizMode, TypingMode, MatchingMode)
   components/ Button, Panel, Chip, DeckCard, SessionStatsBar, AppShell, states, ...
   pages/      HomePage (deck + language-pair selection), LibraryPage (built-in vs custom,
-              import/export/create), PlayPage (deck resolution + mode routing)
+              import/export/create), AboutPage (what it is, how to use, how it works),
+              DeckEditorPage (create/edit), PlayPage (deck resolution + mode routing)
   styles/     tokens.css (warm neutrals, restrained accents, editorial type scale)
 ```
 
