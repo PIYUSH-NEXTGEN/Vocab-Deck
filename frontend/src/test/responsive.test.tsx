@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
 import { renderApp, stubDeckList, DECK_DTOS } from "./utils";
@@ -9,7 +9,8 @@ test("desktop navigation shows links inline without the menu toggle", async () =
   stubDeckList(DECK_DTOS);
   renderApp(<App />);
 
-  expect(await screen.findByRole("link", { name: /deck library/i })).toBeInTheDocument();
+  const primaryNav = screen.getByRole("navigation", { name: "Primary" });
+  expect(await within(primaryNav).findByRole("link", { name: /deck library/i })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /menu|close/i })).not.toBeInTheDocument();
 });
 
@@ -21,17 +22,17 @@ test("compact navigation collapses behind a toggle", async () => {
 
   const toggle = await screen.findByRole("button", { name: /menu/i });
   // Accessible names aren't computed for hidden elements, so query by role only.
-  const nav = screen.getByRole("navigation", { hidden: true });
+  const nav = document.getElementById("primary-navigation")!;
   expect(nav).toHaveAttribute("hidden");
   expect(nav).toHaveAttribute("aria-label", "Primary");
 
   await user.click(toggle);
 
   expect(nav).not.toHaveAttribute("hidden");
-  expect(screen.getByRole("link", { name: /deck library/i })).toBeInTheDocument();
+  expect(within(nav).getByRole("link", { name: /deck library/i })).toBeInTheDocument();
 
-  await user.click(screen.getByRole("link", { name: /deck library/i }));
+  await user.click(within(nav).getByRole("link", { name: /deck library/i }));
   expect(await screen.findByRole("heading", { name: /your decks/i })).toBeInTheDocument();
   // Navigating closes the menu again.
-  expect(screen.getByRole("navigation", { hidden: true })).toHaveAttribute("hidden");
+  expect(document.getElementById("primary-navigation")).toHaveAttribute("hidden");
 });

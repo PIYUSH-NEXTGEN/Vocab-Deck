@@ -1,9 +1,7 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
 import { renderApp } from "./utils";
-import { buildQuizRounds, seededRng } from "../game/engine";
-import type { VocabularyEntry } from "../api/types";
 
 const CUSTOM_DECK_KEY = "flash-card-game.customDecks.v1";
 
@@ -29,10 +27,18 @@ function seedCustomDeck() {
   window.localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify([CUSTOM_DECK]));
 }
 
-/** The first quiz round is deterministic (seed 0), so we know the right answer. */
-function firstAnswer(): string {
-  const entries: VocabularyEntry[] = CUSTOM_DECK.entries.map((entry) => ({ ...entry }));
-  return buildQuizRounds(entries, seededRng(0))[0].answer;
+/** Sessions are randomized, so answer whatever the current question asks. */
+function answerFirstQuestion(): void {
+  const options = within(document.querySelector(".option-list") as HTMLElement).getAllByRole(
+    "button",
+  );
+  fireEvent.click(options[0]);
+  fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+}
+
+function quizScore(): string {
+  const text = screen.getByLabelText("Session statistics").textContent ?? "";
+  return text.match(/Quiz(\d)\/(\d)/)?.[0] ?? "";
 }
 
 test("answering a quiz question then switching modes preserves session stats", async () => {
@@ -43,15 +49,15 @@ test("answering a quiz question then switching modes preserves session stats", a
   // The custom deck resolves from storage (no API call needed).
   expect(await screen.findByRole("heading", { name: "Spanish basics" })).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: firstAnswer() }));
-  fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
-  expect(screen.getByLabelText("Session statistics")).toHaveTextContent("1/1");
+  answerFirstQuestion();
+  expect(quizScore()).toMatch(/^Quiz\d\/1$/);
 
   // Switch to matching via the mode navigation.
-  await user.click(screen.getByRole("link", { name: "Matching" }));
+  const modeNav = screen.getByRole("navigation", { name: "Practice modes" });
+  await user.click(within(modeNav).getByRole("link", { name: "Matching" }));
   expect(await screen.findByRole("heading", { name: "Spanish basics" })).toBeInTheDocument();
   // Quiz stats survive the mode switch.
-  expect(screen.getByLabelText("Session statistics")).toHaveTextContent("1/1");
+  expect(quizScore()).toMatch(/^Quiz\d\/1$/);
 });
 
 test("an explicit restart resets session statistics", async () => {
@@ -60,15 +66,16 @@ test("an explicit restart resets session statistics", async () => {
   renderApp(<App />, `/play/quiz/${CUSTOM_DECK.deck.id}`);
 
   await screen.findByRole("heading", { name: "Spanish basics" });
-  fireEvent.click(screen.getByRole("button", { name: firstAnswer() }));
-  fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
-  expect(screen.getByLabelText("Session statistics")).toHaveTextContent("1/1");
+  answerFirstQuestion();
+  expect(quizScore()).toMatch(/^Quiz\d\/1$/);
 
   await user.click(screen.getByRole("button", { name: /restart session/i }));
 
   expect(screen.getByLabelText("Session statistics")).toHaveTextContent(
     /no session activity|session activity will appear here/i,
   );
+  // The active round restarts too: back to question 1 of 3.
+  expect(screen.getByText(/question 1 of 3/i)).toBeInTheDocument();
 });
 
 test("an unknown deck id surfaces the API error state", async () => {

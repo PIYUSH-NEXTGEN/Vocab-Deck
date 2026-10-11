@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
 import { renderApp, stubDeckList, DECK_DTOS } from "./utils";
@@ -12,9 +12,10 @@ test("home -> library navigation works", async () => {
   const user = userEvent.setup();
   renderApp(<App />);
 
-  expect(await screen.findByRole("heading", { name: /vocab deck/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: /vocab deck/i })).toBeInTheDocument();
 
-  await user.click(screen.getByRole("link", { name: /deck library/i }));
+  const primaryNav = screen.getByRole("navigation", { name: "Primary" });
+  await user.click(within(primaryNav).getByRole("link", { name: /deck library/i }));
 
   expect(await screen.findByRole("heading", { name: /your decks/i })).toBeInTheDocument();
   // Built-in deck visible after load
@@ -26,9 +27,23 @@ test("home link navigates back from the library", async () => {
   const user = userEvent.setup();
   renderApp(<App />, "/library");
 
-  await user.click(screen.getByRole("link", { name: /^home$/i }));
+  const headerNav = screen.getByRole("navigation", { name: "Primary" });
+  await user.click(within(headerNav).getByRole("link", { name: /^home$/i }));
 
-  expect(await screen.findByRole("heading", { name: /vocab deck/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: /vocab deck/i })).toBeInTheDocument();
+});
+
+test("about page explains the product", async () => {
+  stubDeckList(DECK_DTOS);
+  const user = userEvent.setup();
+  renderApp(<App />);
+
+  await user.click(screen.getByRole("link", { name: /^about$/i }));
+
+  expect(await screen.findByRole("heading", { name: /what it is/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /how to use it/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /the four modes/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /decks and your data/i })).toBeInTheDocument();
 });
 
 test("unknown route renders not found", async () => {

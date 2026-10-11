@@ -1,6 +1,7 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useEffect, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
-import { MAX_QUIZ_ROUNDS, buildQuizRounds, seededRng } from "../engine";
+import { MAX_QUIZ_ROUNDS, buildQuizRounds } from "../engine";
+import { useSessionSeed } from "../useSessionSeed";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
@@ -19,10 +20,17 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   const register = useAnimationRegistry();
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const { rng, reshuffle } = useSessionSeed(seed);
+  const allRounds = useMemo(
+    () => buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS),
+    [deck.entries, rng],
+  );
+  const maxQuestions = allRounds.length;
+  const [questionCount, setQuestionCount] = useState(maxQuestions);
+  const [countInput, setCountInput] = useState(() => String(maxQuestions));
   const rounds = useMemo(
-    () => buildQuizRounds(deck.entries, seededRng(seed ?? attempt), MAX_QUIZ_ROUNDS),
-    [deck.entries, seed, attempt],
+    () => allRounds.slice(0, Math.min(questionCount, maxQuestions)),
+    [allRounds, questionCount, maxQuestions],
   );
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -30,6 +38,29 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
 
   // Derived before the early returns so both effects below stay unconditional.
   const activeRound = rounds.length > 0 ? rounds[Math.min(index, rounds.length - 1)] : null;
+
+  /** Accept only whole numbers inside 1..maxQuestions; otherwise revert. */
+  const commitQuestionCount = useCallback(
+    (raw: string) => {
+      const parsed = Number(raw.trim());
+      const current = Math.min(questionCount, maxQuestions);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxQuestions) {
+        setCountInput(String(current));
+        return;
+      }
+      if (parsed === current) {
+        setCountInput(String(parsed));
+        return;
+      }
+      setQuestionCount(parsed);
+      setCountInput(String(parsed));
+      reshuffle(); // a fresh set of questions for the new count
+      setIndex(0);
+      setSelected(null);
+      setSubmitted(false);
+    },
+    [maxQuestions, questionCount, reshuffle],
+  );
 
   // Feedback accent: pulse for correct, gentle shake for incorrect. Scoring is
   // already done by the time it runs, so animation never gates state.
@@ -46,7 +77,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     if (rounds.length > 0 && index >= rounds.length) register(rise(summaryRef.current));
   }, [index, rounds.length, register]);
 
-  if (rounds.length === 0) {
+  if (maxQuestions === 0) {
     return (
       <EmptyState
         title="Not enough distinct translations"
@@ -71,7 +102,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   }
 
   function playAgain() {
-    setAttempt((value) => value + 1);
+    reshuffle();
     setIndex(0);
     setSelected(null);
     setSubmitted(false);
@@ -98,9 +129,36 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
 
   return (
     <div className="stack">
-      <div className="row row-space">
+      <div className="row row-space round-controls">
         <span className="label">
           Question {index + 1} of {rounds.length}
+        </span>
+        <span className="row round-size">
+          <label className="label" htmlFor="quiz-question-count">
+            Questions
+          </label>
+          <input
+            id="quiz-question-count"
+            className="round-size-input"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={maxQuestions}
+            step={1}
+            value={countInput}
+            aria-describedby="quiz-question-count-hint"
+            onChange={(event) => setCountInput(event.target.value)}
+            onBlur={(event) => commitQuestionCount(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitQuestionCount((event.target as HTMLInputElement).value);
+              }
+            }}
+          />
+          <span className="faint" id="quiz-question-count-hint">
+            1–{maxQuestions}
+          </span>
         </span>
         <ProgressBar value={index} max={rounds.length} label={`${index} answered`} />
       </div>

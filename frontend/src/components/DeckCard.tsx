@@ -34,9 +34,6 @@ export function DeckCard({
             </Chip>
           </span>
           <span className="faint">{languagePairLabel(deck.sourceLanguage, deck.targetLanguage)}</span>
-          {deck.description ? (
-            <span className="muted deck-description">{deck.description}</span>
-          ) : null}
         </span>
         <span className="row row-space deck-meta">
           <span className="label">{deck.entryCount} entries</span>

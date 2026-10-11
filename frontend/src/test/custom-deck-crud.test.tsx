@@ -210,7 +210,8 @@ describe("custom deck creation and editing", () => {
     renderAppAt("/");
     expect(await screen.findByText("Spanish basics")).toBeInTheDocument();
     await userEvent.setup().click(screen.getAllByRole("button", { name: /select deck/i })[0]);
-    expect(screen.getByRole("link", { name: /flashcards/i })).toHaveAttribute(
+    const practice = await screen.findByRole("region", { name: /practice spanish basics/i });
+    expect(within(practice).getByRole("link", { name: /flashcards/i })).toHaveAttribute(
       "href",
       `/play/flashcards/${DECK.deck.id}`,
     );

@@ -63,6 +63,8 @@ export interface SessionApi {
   stats: SessionStats;
   /** True until the first recorded event, so the UI can show a quiet zero state. */
   isPristine: boolean;
+  /** Increments on every restart; use it to remount the active round. */
+  epoch: number;
   recordFlashcardAssessment: (assessment: FlashcardAssessment) => void;
   recordQuizAnswer: (correct: boolean) => void;
   recordTypingAttempt: (correct: boolean) => void;

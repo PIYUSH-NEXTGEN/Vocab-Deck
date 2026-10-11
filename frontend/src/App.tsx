@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { LibraryPage } from "./pages/LibraryPage";
+import { AboutPage } from "./pages/AboutPage";
 import { DeckEditorPage } from "./pages/DeckEditorPage";
 import { PlayPage } from "./pages/PlayPage";
 import { EmptyState } from "./components/EmptyState";
@@ -13,6 +14,7 @@ export function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/editor" element={<DeckEditorPage />} />
         <Route path="/editor/:deckId" element={<DeckEditorPage />} />
         <Route path="/play/:modeId/:deckId" element={<PlayPage />} />

@@ -10,6 +10,7 @@ import {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const startedAtRef = useRef(Date.now());
   const [stats, setStats] = useState(() => emptyStats(startedAtRef.current));
+  const [epoch, setEpoch] = useState(0);
 
   const recordFlashcardAssessment = useCallback((assessment: "known" | "needsPractice") => {
     setStats((prev) => ({
@@ -54,12 +55,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const restart = useCallback(() => {
     startedAtRef.current = Date.now();
     setStats(emptyStats(startedAtRef.current));
+    setEpoch((value) => value + 1); // remount the active mode so the round restarts
   }, []);
 
   const value = useMemo<SessionApi>(
     () => ({
       stats,
       isPristine: isPristineStats(stats),
+      epoch,
       recordFlashcardAssessment,
       recordQuizAnswer,
       recordTypingAttempt,
@@ -68,6 +71,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }),
     [
       stats,
+      epoch,
       recordFlashcardAssessment,
       recordQuizAnswer,
       recordTypingAttempt,

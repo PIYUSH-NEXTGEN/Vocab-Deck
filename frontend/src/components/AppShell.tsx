@@ -1,18 +1,41 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useSession } from "../session/useSession";
+import { AppFooter } from "./AppFooter";
+
+/**
+ * Every route change starts a new screen, so reset the scroll position once the
+ * new page has rendered (rAF), otherwise the old scroll offset is preserved.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    // Skip the initial render: the browser is already at the top there.
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
+
+  return null;
+}
 
 const NAV_ITEMS = [
   { to: "/", label: "Home" },
   { to: "/library", label: "Deck library" },
+  { to: "/about", label: "About" },
 ];
 
 export function AppShell() {
   const isCompact = useMediaQuery("(max-width: 640px)");
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const { restart } = useSession();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -29,14 +52,9 @@ export function AppShell() {
     </NavLink>
   ));
 
-  const restartButton = (
-    <button type="button" className="nav-action" onClick={restart}>
-      Restart session
-    </button>
-  );
-
   return (
     <div className="app-shell">
+      <ScrollToTop />
       <header className="app-header">
         <div className="shell app-header-inner">
           {isCompact ? (
@@ -57,17 +75,12 @@ export function AppShell() {
                 hidden={!menuOpen}
               >
                 {navLinks}
-                <hr className="drawer-divider" />
-                {restartButton}
               </nav>
             </>
           ) : (
-            <div className="app-nav-floating">
-              <nav className="app-nav" aria-label="Primary">
-                {navLinks}
-              </nav>
-              {restartButton}
-            </div>
+            <nav className="app-nav app-nav-floating" aria-label="Primary">
+              {navLinks}
+            </nav>
           )}
         </div>
       </header>
@@ -76,12 +89,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="app-footer">
-        <div className="shell row row-space">
-          <span className="faint">Built-in decks are served by the FastAPI vocabulary API.</span>
-          <span className="faint">Custom decks stay in this browser.</span>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 }

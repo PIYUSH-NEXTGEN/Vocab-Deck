@@ -64,6 +64,52 @@ export function deleteCustomDeck(id: string): void {
   writeAll(readAll().filter((doc) => doc.deck.id !== id));
 }
 
+/** Copy a deck under a fresh id (``<id>-copy``, ``-copy-2``, ...). */
+export function duplicateCustomDeck(id: string): CustomDeckDocument | null {
+  const decks = readAll();
+  const source = decks.find((doc) => doc.deck.id === id);
+  if (!source) return null;
+  const taken = new Set(decks.map((doc) => doc.deck.id));
+  let newId = `${id}-copy`;
+  let suffix = 2;
+  while (taken.has(newId)) {
+    newId = `${id}-copy-${suffix}`;
+    suffix += 1;
+  }
+  const copy: CustomDeckDocument = {
+    version: 1,
+    deck: {
+      ...source.deck,
+      id: newId,
+      name: `${source.deck.name} copy`,
+      entryCount: source.entries.length,
+    },
+    entries: source.entries.map((entry) => ({ ...entry })),
+    exportedAt: new Date().toISOString(),
+  };
+  writeAll([...decks, copy]);
+  return copy;
+}
+
+export type RenameResult = { ok: true } | { ok: false; errors: string[] };
+
+/** Rename a deck (name only) with minimal validation. */
+export function renameCustomDeck(id: string, name: string): RenameResult {
+  const trimmed = name.normalize("NFC").trim();
+  if (!trimmed) return { ok: false, errors: ["Deck name is required."] };
+  if (trimmed.length > 120) return { ok: false, errors: ["Deck name must be at most 120 characters."] };
+  const decks = readAll();
+  if (!decks.some((doc) => doc.deck.id === id)) {
+    return { ok: false, errors: [`No custom deck with id "${id}" exists.`] };
+  }
+  writeAll(
+    decks.map((doc) =>
+      doc.deck.id === id ? { ...doc, deck: { ...doc.deck, name: trimmed } } : doc,
+    ),
+  );
+  return { ok: true };
+}
+
 /** Portable backup document for a deck (created from a parsed custom deck). */
 export function toExportDocument(doc: CustomDeckDocument): string {
   return JSON.stringify(doc, null, 2);

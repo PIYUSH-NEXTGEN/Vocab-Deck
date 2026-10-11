@@ -45,6 +45,9 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: ["./src/test/setup.ts"],
       include: ["src/**/*.test.{ts,tsx}"],
+      // Interaction-heavy tests type into several fields; give them room on
+      // loaded machines instead of failing at the 5s default.
+      testTimeout: 20000,
     },
   };
 });

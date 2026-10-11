@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
-import { buildFlashcardOrder, seededRng } from "../engine";
+import { buildFlashcardOrder } from "../engine";
+import { useSessionSeed } from "../useSessionSeed";
 import { rise, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
@@ -9,6 +10,8 @@ import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
 
 export const AUTO_REVEAL_MS = 3000;
+/** Most cards a single flashcard round can contain. */
+export const MAX_ROUND = 25;
 
 /**
  * Flashcards: show the source word, reveal the translation (automatically or on
@@ -19,11 +22,15 @@ export const AUTO_REVEAL_MS = 3000;
 export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
   const { recordFlashcardAssessment } = useSession();
   const register = useAnimationRegistry();
-  const [attempt, setAttempt] = useState(0);
-  const order = useMemo(
-    () => buildFlashcardOrder(deck.entries, seededRng(seed ?? attempt)),
-    [deck.entries, seed, attempt],
+  const { rng, reshuffle } = useSessionSeed(seed);
+  const fullOrder = useMemo(
+    () => buildFlashcardOrder(deck.entries, rng),
+    [deck.entries, rng],
   );
+  const [roundSize, setRoundSize] = useState(() => Math.min(fullOrder.length, MAX_ROUND));
+  const [sizeInput, setSizeInput] = useState(() => String(Math.min(fullOrder.length, MAX_ROUND)));
+  const maxRound = Math.min(fullOrder.length, MAX_ROUND);
+  const order = useMemo(() => fullOrder.slice(0, Math.min(roundSize, maxRound)), [fullOrder, roundSize, maxRound]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -50,6 +57,33 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
     if (finished) register(rise(summaryRef.current));
   }, [finished, register]);
 
+  const changeRoundSize = useCallback(
+    (next: number) => {
+      clearTimer();
+      setRoundSize(next);
+      setSizeInput(String(next));
+      reshuffle(); // fresh shuffle for the new subset
+      setIndex(0);
+      setRevealed(false);
+      setFinished(false);
+    },
+    [clearTimer],
+  );
+
+  /** Accept only whole numbers inside the deck's range; otherwise revert. */
+  const commitRoundSize = useCallback(
+    (raw: string) => {
+      const parsed = Number(raw.trim());
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxRound) {
+        setSizeInput(String(Math.min(roundSize, maxRound)));
+        return;
+      }
+      if (parsed !== roundSize) changeRoundSize(parsed);
+      else setSizeInput(String(parsed));
+    },
+    [changeRoundSize, maxRound, roundSize],
+  );
+
   const advance = useCallback(() => {
     clearTimer();
     if (index + 1 >= order.length) {
@@ -70,7 +104,7 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
 
   const restart = useCallback(() => {
     clearTimer();
-    setAttempt((value) => value + 1);
+    reshuffle();
     setIndex(0);
     setRevealed(false);
     setFinished(false);
@@ -99,9 +133,36 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
 
   return (
     <div className="stack">
-      <div className="row row-space">
+      <div className="row row-space round-controls">
         <span className="label">
           Card {index + 1} of {order.length}
+        </span>
+        <span className="row round-size">
+          <label className="label" htmlFor="flashcard-round-size">
+            Cards this round
+          </label>
+          <input
+            id="flashcard-round-size"
+            className="round-size-input"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={maxRound}
+            step={1}
+            value={sizeInput}
+            aria-describedby="flashcard-round-size-hint"
+            onChange={(event) => setSizeInput(event.target.value)}
+            onBlur={(event) => commitRoundSize(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitRoundSize((event.target as HTMLInputElement).value);
+              }
+            }}
+          />
+          <span className="faint" id="flashcard-round-size-hint">
+            1–{maxRound}
+          </span>
         </span>
         <ProgressBar value={index} max={order.length} label={`${index} reviewed`} />
       </div>
@@ -138,7 +199,7 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
           <Button variant="primary" onClick={() => assess("known")}>
             Known
           </Button>
-          <Button variant="secondary" onClick={() => assess("needsPractice")}>
+          <Button variant="danger-outline" onClick={() => assess("needsPractice")}>
             Needs practice
           </Button>
         </div>

@@ -1,12 +1,13 @@
 import { useSession } from "../session/useSession";
+import { Button } from "./Button";
 
 /**
- * Session-wide statistics. Displayed next to results on the play screen —
- * values come from the in-memory SessionContext and are reset only by an
- * explicit restart (the action lives in the navbar).
+ * Session-wide statistics, shown next to results on the play screen. Values
+ * come from the in-memory SessionContext; the restart action lives here with
+ * the stats it clears.
  */
 export function SessionStatsBar({ compact = false }: { compact?: boolean }) {
-  const { stats, isPristine } = useSession();
+  const { stats, isPristine, restart } = useSession();
 
   return (
     <div className="session-bar" aria-label="Session statistics">
@@ -28,6 +29,9 @@ export function SessionStatsBar({ compact = false }: { compact?: boolean }) {
           />
         </dl>
       )}
+      <Button variant="ghost" size="small" onClick={restart}>
+        Restart session
+      </Button>
     </div>
   );
 }

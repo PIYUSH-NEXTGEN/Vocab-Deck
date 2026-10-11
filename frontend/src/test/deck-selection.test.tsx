@@ -9,15 +9,21 @@ test("selecting a built-in deck reveals the four game modes with links", async (
   renderApp(<App />);
 
   expect(await screen.findByText(DECK_DTOS[0].name)).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: /flashcards/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /^practice/i })).not.toBeInTheDocument();
 
   await user.click(screen.getAllByRole("button", { name: /select deck/i })[0]);
 
-  const modeLinks = screen.getAllByRole("link", { name: /flashcards|multiple choice|typing|matching/i });
+  // Mode links live in the practice panel, not the footer.
+  const practice = await screen.findByRole("region", { name: /practice french to english/i });
+  const modeLinks = within(practice).getAllByRole("link", {
+    name: /flashcards|multiple choice|typing|matching/i,
+  });
   expect(modeLinks).toHaveLength(4);
-  const flashcards = screen.getByRole("link", { name: /flashcards/i });
-  expect(flashcards).toHaveAttribute("href", "/play/flashcards/fr-en-common");
-  expect(screen.getByRole("link", { name: /multiple choice/i })).toHaveAttribute(
+  expect(within(practice).getByRole("link", { name: /flashcards/i })).toHaveAttribute(
+    "href",
+    "/play/flashcards/fr-en-common",
+  );
+  expect(within(practice).getByRole("link", { name: /multiple choice/i })).toHaveAttribute(
     "href",
     "/play/quiz/fr-en-common",
   );

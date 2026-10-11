@@ -95,9 +95,10 @@ describe.each([
     const rounds = buildQuizRounds(DECK.entries, seededRng(0));
     renderMode(<QuizMode deck={DECK} seed={0} />);
 
-    // Keyboard: tab to the first option, activate with Enter.
+    // Keyboard: tab past the question-count input to the first option.
     const user = userEvent.setup();
-    await user.tab();
+    await user.tab(); // question count field
+    await user.tab(); // first answer option
     const firstOption = screen.getAllByRole("button", { name: rounds[0].options[0] })[0];
     expect(firstOption).toHaveFocus();
     await user.keyboard("{Enter}");

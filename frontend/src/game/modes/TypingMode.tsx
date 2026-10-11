@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
-import { buildFlashcardOrder, seededRng } from "../engine";
+import { buildFlashcardOrder } from "../engine";
+import { useSessionSeed } from "../useSessionSeed";
 import { acceptedAnswers, matchesTranslation } from "../text";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
@@ -22,10 +23,10 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
   const register = useAnimationRegistry();
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const { rng, reshuffle } = useSessionSeed(seed);
   const order = useMemo(
-    () => buildFlashcardOrder(deck.entries, seededRng(seed ?? attempt)),
-    [deck.entries, seed, attempt],
+    () => buildFlashcardOrder(deck.entries, rng),
+    [deck.entries, rng],
   );
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
@@ -69,7 +70,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
   }
 
   function playAgain() {
-    setAttempt((value) => value + 1);
+    reshuffle();
     setIndex(0);
   }
 

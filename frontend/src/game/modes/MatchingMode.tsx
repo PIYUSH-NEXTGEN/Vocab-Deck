@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
-import { MAX_MATCH_PAIRS, buildMatchBoard, seededRng } from "../engine";
+import { MAX_MATCH_PAIRS, buildMatchBoard } from "../engine";
+import { useSessionSeed } from "../useSessionSeed";
 import { pop, pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
@@ -23,10 +24,10 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
   const { recordMatchAttempt, stats } = useSession();
   const register = useAnimationRegistry();
   const summaryRef = useRef<HTMLDivElement | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const { rng, reshuffle } = useSessionSeed(seed);
   const board = useMemo(
-    () => buildMatchBoard(deck.entries, seededRng(seed ?? attempt), MAX_MATCH_PAIRS),
-    [deck.entries, seed, attempt],
+    () => buildMatchBoard(deck.entries, rng, MAX_MATCH_PAIRS),
+    [deck.entries, rng],
   );
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(() => new Set());
@@ -57,7 +58,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
 
   function playAgain() {
     reset();
-    setAttempt((value) => value + 1);
+    reshuffle();
   }
 
   if (board.pairs.length < 2) {
