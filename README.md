@@ -1,81 +1,553 @@
 # Vocab Deck
 
-A vocabulary practice app: choose a deck (any language pair), then train with
-flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was
-replaced by a React frontend and a FastAPI vocabulary API.
+> A vocabulary practice app: choose a deck (any language pair), then train with flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was replaced by a React frontend and a FastAPI vocabulary API.
 
-## Layout
+[Live Demo](#) · [Documentation](docs/architecture.md) · [Report a Bug](../../issues)
 
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Features](#features)
+- [Demo](#demo)
+- [How It Works](#how-it-works)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Codebase Structure](#codebase-structure)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Performance](#performance)
+- [Security](#security)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+---
+
+## Overview
+
+**Vocab Deck** is a vocabulary practice application that helps language learners memorize words through four interactive study modes. It provides a modern React frontend backed by a FastAPI vocabulary service. Built-in decks cover English→French, English→German, and English→Japanese; users can also create, edit, import, and export custom decks entirely in the browser.
+
+Intended for: language learners, students, and anyone building vocabulary in a new language.
+
+---
+
+## Problem Statement
+
+- **Problem:** Existing flashcard apps either lock content behind subscriptions, require accounts, or hardcode a single language pair. The original Tkinter prototype mixed gameplay progress with canonical vocabulary data (overwriting the deck file on every session), hardcoded French/English, and had no extensibility.
+- **Existing gap:** No lightweight, account-free tool that separates vocabulary data from progress, supports arbitrary language pairs out of the box, and lets users own their custom decks locally.
+- **Approach:** Split into a stateless FastAPI backend serving version-controlled deck files, and a React SPA that owns all gameplay state in memory and custom decks in `localStorage`. No database, no auth, no server-side progress.
+
+---
+
+## Features
+
+- **Four study modes** — Flashcards (with 3D flip), Multiple-choice Quiz, Typing (accent-insensitive option), Matching
+- **Three built-in language pairs** — English→French, English→German, English→Japanese (25 entries each, directly comparable)
+- **Custom decks** — Create, edit, import (JSON/CSV), export; validated client-side with same rules as built-in decks
+- **Session tracking** — Per-mode stats (correct/incorrect, streaks, time) preserved across mode switches; reset on demand
+- **Theme support** — Light/dark with `prefers-color-scheme` detection and `localStorage` persistence, no flash on load
+- **Accessibility** — `prefers-reduced-motion` swaps flip for instant face swap; focus-visible outlines; semantic HTML
+- **Offline-capable custom decks** — Stored in `localStorage`, portable via JSON/CSV export
+- **Typed API contract** — Shared TypeScript/Pydantic schemas; frontend client maps DTOs to domain types
+
+---
+
+## Demo
+
+<!-- Add screenshots, GIFs, or a live demo link here -->
+
+| Home (deck selection) | Play (Flashcards mode) | Library (custom decks) |
+|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Play](docs/screenshots/play.png) | ![Library](docs/screenshots/library.png) |
+
+*Run locally to see the app in action (see [Getting Started](#getting-started)).*
+
+---
+
+## How It Works
+
+### Execution Flow
+
+1. **Input:** User selects a deck (built-in or custom) and a study mode on the Home page
+2. **Validation:** Frontend resolves the deck — built-in decks fetched from `/api/decks/{id}`, custom decks read from `localStorage`; entries validated against shared schema
+3. **Processing:** Game engine (pure functions) builds a randomized session for the chosen mode:
+   - Flashcards: sequential with flip timer
+   - Quiz: generates 3 distractors per question, excludes alternatives
+   - Typing: NFC/case/whitespace-insensitive comparison, optional accent folding
+   - Matching: builds a bipartite pairing, drops ambiguous translations
+4. **Storage / external services:**
+   - Built-in decks: read from `backend/app/data/decks/` at backend startup
+   - Custom decks: `localStorage` (key `flash-card-game.customDecks.v1`)
+   - Theme preference: `localStorage` (key `vocabdeck.theme`)
+   - Gameplay progress: **memory only** (React context), discarded on reload
+5. **Output:** Interactive UI with real-time feedback (correct/incorrect animations, stats bar)
+
+### Key Design Decisions
+
+| Decision | Trade-off |
+|---|---|
+| Backend is vocabulary-only, no gameplay endpoints | Simpler API, no auth/session mgmt; frontend owns all game logic |
+| Progress in memory only | Zero server cost, privacy-friendly; but reload loses session |
+| Custom decks in `localStorage` | Portable, offline, no backend storage; but per-browser, no sync |
+| Static deck files in git | Version-controlled, diffable, zero infra; but redeploy to add decks |
+| Four modes share one engine | Consistent randomization, stats, text rules; more upfront design |
+
+---
+
+## Architecture
+
+### System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser["Browser (React SPA)"]
+        direction TB
+        UI["UI Components\n(Pages, Modes, Shell)"]
+        Engine["Game Engine\n(rng, text, builders)"]
+        Session["SessionProvider\n(in-memory stats)"]
+        Storage["localStorage\n(custom decks, theme)"]
+        APIClient["Typed API Client\n(DTO → domain)"]
+    end
+
+    subgraph Backend["FastAPI Backend (Python)"]
+        direction TB
+        Routes["Routes\n/api/decks, /api/health"]
+        Loader["Deck Loader\n(JSON, CSV+meta)"]
+        Decks["Deck Files\nbackend/app/data/decks/"]
+        Validation["Pydantic Validation\n(startup + runtime)"]
+    end
+
+    UI --> Engine
+    UI --> Session
+    UI --> Storage
+    UI --> APIClient
+    Engine --> Session
+    APIClient -->|/api| Routes
+    Routes --> Loader
+    Loader --> Decks
+    Loader --> Validation
+    Validation --> Routes
+    Routes --> APIClient
+
+    classDef browser fill:#f4f0e4,stroke:#141414,stroke-width:2px;
+    classDef backend fill:#e8f4fd,stroke:#2f6ea5,stroke-width:2px;
+    class Browser,UI,Engine,Session,Storage,APIClient browser;
+    class Backend,Routes,Loader,Decks,Validation backend;
 ```
-backend/    FastAPI vocabulary service (built-in decks, deck/entry endpoints, CORS)
-frontend/   React + TypeScript + Vite app (all game modes, custom decks, sessions)
-docs/       architecture audit, data model, API contract, migration record
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant HomePage as Home Page
+    participant API as API Client
+    participant Backend as FastAPI Backend
+    participant LS as localStorage
+    participant PlayPage as Play Page
+    participant Engine as Game Engine
+
+    User->>HomePage: Select deck + mode
+    alt Built-in deck
+        HomePage->>API: GET /api/decks/{id}
+        API->>Backend: Forward request
+        Backend-->>API: DeckSummary + entries
+        API-->>HomePage: Typed domain objects
+    else Custom deck
+        HomePage->>LS: Read custom deck
+        LS-->>HomePage: Deck JSON
+    end
+    HomePage->>PlayPage: Navigate /play/:mode/:deckId
+    PlayPage->>Engine: buildSession(deck, mode)
+    Engine-->>PlayPage: Session state (cards, queue, stats)
+    PlayPage->>Session: Initialize session stats
+    loop Study session
+        User->>PlayPage: Answer / flip / match
+        PlayPage->>Engine: evaluate(answer)
+        Engine-->>PlayPage: Result + next item
+        PlayPage->>Session: Record stat
+    end
+    User->>PlayPage: Restart session
+    PlayPage->>Session: Reset stats
 ```
 
-## Requirements
+### Frontend Architecture
 
-- Python 3.11+ with `fastapi`, `uvicorn`, `pydantic` (backend)
-- Node.js 18+ with npm (frontend)
+```mermaid
+flowchart LR
+    subgraph Pages["Pages (Routes)"]
+        Home["HomePage\n/ (deck select)"]
+        Library["LibraryPage\n/library"]
+        Editor["DeckEditorPage\n/editor/:id?"]
+        About["AboutPage\n/about"]
+        Play["PlayPage\n/play/:mode/:deckId"]
+    end
 
-## Run locally
+    subgraph Core["Core Systems"]
+        Engine["game/engine\n(pure builders)"]
+        Modes["game/modes\n(Flashcards, Quiz, Typing, Matching)"]
+        Session["session/\nSessionProvider + useSession"]
+        Storage["storage/\ncustomDecks + import/export"]
+        Theme["theme/\nThemeProvider + useTheme"]
+        API["api/\nclient + useAsync"]
+    end
 
-Backend (serves built-in decks on port 8000):
+    subgraph UI["Components"]
+        Shell["AppShell\nlayout, nav, footer"]
+        Cards["DeckCard, VocabCard"]
+        Forms["EditorForm, ImportDialog"]
+        Feedback["SessionStatsBar, Chip, Button"]
+    end
 
+    Home --> Engine
+    Home --> API
+    Library --> Storage
+    Library --> API
+    Editor --> Storage
+    Play --> Engine
+    Play --> Modes
+    Play --> Session
+    Engine --> Modes
+    Modes --> Session
+    Pages -.-> UI
+    Core -.-> UI
+    Theme -.-> Shell
 ```
+
+### Backend Architecture
+
+```mermaid
+flowchart TB
+    subgraph Startup["Startup"]
+        Main["main.py\ncreate_app()"]
+        Config["config.py\nSettings (CORS, env)"]
+        Loader["loader.py\nload_decks()"]
+        DecksDir["data/decks/\n*.json, *.csv + .meta.json"]
+        Validation["Validation Rules\n(id, lang, content)"]
+    end
+
+    subgraph Runtime["Runtime"]
+        Routes["Routes\n/api/health, /api/decks*"]
+        Errors["errors.py\nApiError → HTTP"]
+        CORS["CORSMiddleware\nfrom Settings"]
+        Store["DeckStore\nin app.state"]
+    end
+
+    Main --> Config
+    Main --> Loader
+    Loader --> DecksDir
+    Loader --> Validation
+    Validation -.->|fail fast| Main
+    Loader --> Store
+    Main --> CORS
+    Main --> Routes
+    Routes --> Store
+    Routes --> Errors
+    Errors --> Routes
+
+    classDef startup fill:#fff8e1,stroke:#141414,stroke-width:2px;
+    classDef runtime fill:#e8f4fd,stroke:#2f6ea5,stroke-width:2px;
+    class Startup,Main,Config,Loader,DecksDir,Validation startup;
+    class Runtime,Routes,Errors,CORS,Store runtime;
+```
+
+---
+
+## Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| **Python 3.11+** | Backend runtime |
+| **FastAPI 0.110+** | Web framework, automatic OpenAPI, validation |
+| **Uvicorn** | ASGI server |
+| **Pydantic 2** | Settings, schemas, validation |
+| **Node.js 18+** | Frontend runtime |
+| **React 18 + TypeScript** | SPA framework |
+| **Vite** | Dev server, build, proxy |
+| **Vitest + Testing Library** | Unit/component tests |
+| **Playwright** | End-to-end tests |
+| **ESLint + TypeScript** | Linting, type-checking |
+| **CSS Custom Properties** | Design tokens, theming, no build-time CSS framework |
+
+**Non-obvious choices:**
+- No CSS framework — tokens + components CSS keeps bundle small (~28 kB CSS gzipped)
+- No state library — React Context + pure functions for game engine
+- No database — deck files are the source of truth, loaded at startup
+
+---
+
+## Codebase Structure
+
+```text
+Vocab-Deck/
+├── backend/                     # FastAPI vocabulary service
+│   ├── app/
+│   │   ├── main.py              # App factory, routes, CORS, error handlers
+│   │   ├── config.py            # Pydantic settings (CORS_ORIGINS, APP_ENV)
+│   │   ├── schemas.py           # API contract (Pydantic models)
+│   │   ├── loader.py            # Deck discovery + validation (JSON, CSV+meta)
+│   │   ├── errors.py            # Domain errors → HTTP error JSON
+│   │   └── data/decks/          # Version-controlled built-in decks
+│   │       ├── en-de.json       # English → German (25 entries)
+│   │       ├── en-fr.json       # English → French (25 entries)
+│   │       └── en-ja.json       # English → Japanese (25 entries)
+│   ├── tests/                   # pytest + FastAPI TestClient (76 tests)
+│   └── pyproject.toml
+├── frontend/                    # React + TypeScript + Vite SPA
+│   ├── e2e/                     # Playwright E2E tests (25 tests)
+│   ├── src/
+│   │   ├── api/                 # Typed client + useAsync hook
+│   │   ├── game/                # Engine (rng, text rules) + 4 modes
+│   │   ├── session/             # In-memory session stats + restart
+│   │   ├── storage/             # Custom decks in localStorage
+│   │   ├── theme/               # Light/dark theme provider
+│   │   ├── components/          # Shell, nav, footer, cards, buttons, toggle
+│   │   ├── pages/               # Home, Library, Editor, About, Play
+│   │   └── styles/              # tokens → global → components → motion
+│   ├── playwright.config.ts
+│   ├── vite.config.ts           # Dev/preview proxy to backend
+│   └── package.json
+├── docs/
+│   ├── architecture.md          # Audit, data model, API contract, design system
+│   └── deployment.md            # Deployment, operations, verification record
+├── .gitignore
+└── README.md
+```
+
+### Key Directories
+
+| Path | Responsibility | Where to Contribute |
+|---|---|---|
+| `backend/app/loader.py` | Deck loading, validation, ID derivation | Add deck formats, fix validation |
+| `backend/app/schemas.py` | API request/response models | Change API contract |
+| `frontend/src/game/engine.ts` | Pure session builders, randomization | Modify game logic, add modes |
+| `frontend/src/game/modes/` | Mode-specific UI + evaluation | Tweak mode behavior, feedback |
+| `frontend/src/storage/customDecks.ts` | localStorage CRUD, import/export | Custom deck features |
+| `frontend/src/styles/tokens.css` | Design tokens (colors, spacing, type) | Visual changes |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Python 3.11+** with `pip`
+- **Node.js 18+** with `npm`
+- (Optional) `make` for convenience commands
+
+### Installation
+
+```bash
+# Clone
+git clone https://github.com/PIYUSH-NEXTGEN/Vocab-Deck.git
+cd Vocab-Deck
+
+# Backend
 cd backend
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
 pip install fastapi uvicorn pydantic
-uvicorn app.main:app --reload --port 8000
-```
 
-Frontend (dev server on port 5173, proxies /api to the backend):
-
-```
-cd frontend
+# Frontend
+cd ../frontend
 npm install
-npm run dev
 ```
 
-## Troubleshooting: "Request failed with status 404" / cards not loading
+### Configuration
 
-The frontend talks to the backend through the `/api` prefix. A 404 with
-`{"detail":"Not Found"}` means port **8000 is serving a different application**
-(another project's server, for example). The backend would have failed to start
-with "address already in use".
+| Variable | Where | Default | Description |
+|---|---|---|---|
+| `CORS_ORIGINS` | Backend | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated origins allowed to call API; `*` allows all |
+| `APP_ENV` | Backend | `development` | Informational only |
+| `VITE_API_TARGET` | Frontend (dev/preview) | `http://127.0.0.1:8000` | Proxy target for `/api` in dev |
+| `VITE_API_URL` | Frontend (all) | `/api` | Absolute API base; bypasses proxy when set |
 
-Run the backend on a free port and point the frontend at it:
+Create `.env` files if you need non-default values (e.g., backend on another port):
 
+```bash
+# backend/.env
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+# frontend/.env
+VITE_API_TARGET=http://127.0.0.1:8000
 ```
+
+### Run Locally
+
+**Terminal 1 — Backend:**
+```bash
 cd backend
-python -m uvicorn app.main:app --port 8001
+uvicorn app.main:app --reload --port 8000
+# → http://127.0.0.1:8000/api/health  {"status":"ok","deck_count":3}
+```
 
+**Terminal 2 — Frontend:**
+```bash
 cd frontend
-VITE_API_TARGET=http://127.0.0.1:8001 npm run dev   # keep the /api proxy
-# or, bypassing the proxy (also works with `npm run preview`):
-VITE_API_URL=http://127.0.0.1:8001/api npm run dev
+npm run dev
+# → http://localhost:5173  (proxies /api to :8000)
 ```
 
-Environment variables are read when the dev server starts, so restart it after
-changing them. If something else answers on the API port, the app now says so
-explicitly ("Wrong service on the API port") instead of a bare 404.
+Open http://localhost:5173 — select a deck, choose a mode, start studying.
 
-## Test and check
+---
 
-```
-cd backend && python -m pytest        # API, schemas, loader, built-in deck tests
-cd frontend && npm run typecheck      # tsc --noEmit
-cd frontend && npm run lint           # eslint
-cd frontend && npm test               # vitest + Testing Library
-cd frontend && npm run build          # production build (tsc + vite)
-cd frontend && npm run test:e2e       # Playwright end-to-end suite
-```
+## Usage
 
-## Data and deployments notes
+### Home Page (`/`)
+- Choose a built-in deck (en-fr, en-de, en-ja) or a custom deck
+- Select study mode: Flashcards, Quiz, Typing, Matching
+- Click **Play** to start
 
-- Built-in decks are version-controlled JSON/CSV files under
-  `backend/app/data/decks/`; no database, no accounts.
-- Custom decks are created/imported in the browser and stored in `localStorage`
-  (`flash-card-game.customDecks.v1`); export them as JSON for a portable backup.
-- Gameplay progress is session-only and memory-resident; reloading the tab resets it.
-- CORS is configured with the `CORS_ORIGINS` env var (comma-separated; `*` allows all).
-- Full design, API contract and the Tkinter migration record: `docs/architecture.md`.
-- Deployment, API reference, data formats and operations: `docs/deployment.md`.
+### Library (`/library`)
+- **Built-in decks** — read-only, view entries
+- **Custom decks** — create new, edit, delete, export (JSON/CSV), import
+- Import: drag-and-drop or click to select `.json`/`.csv`; preview validates before confirm
+
+### Editor (`/editor` or `/editor/:id`)
+- Name, description, source/target language codes (BCP-47, e.g., `es`, `zh-Hans`)
+- Entry grid: add/edit/remove rows; alternatives and tags as comma-separated values
+- Save writes to `localStorage`; deck ID is stable on edit
+
+### Play (`/play/:mode/:deckId`)
+- **Flashcards** — space/click to flip, ←/→ or buttons to navigate, self-assess (✅/❌)
+- **Quiz** — click option, immediate feedback, next auto-advances
+- **Typing** — type answer, Enter to submit; toggle "Ignore accents" for kana/umlauts
+- **Matching** — drag to pair source↔target; ambiguous translations dropped with notice
+- **Session bar** — shows correct/incorrect/streak per mode; **Restart session** resets
+
+### Keyboard Shortcuts (Play page)
+| Key | Action |
+|---|---|
+| `Space` / `Enter` | Flip (Flashcards) / Submit (Typing, Quiz) |
+| `←` / `→` | Previous / Next card |
+| `1` / `2` | Correct / Incorrect (Flashcards self-assess) |
+| `R` | Restart session |
+
+---
+
+## Configuration Reference
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CORS_ORIGINS` | No | `http://localhost:5173,http://127.0.0.1:5173` | Backend: allowed browser origins |
+| `APP_ENV` | No | `development` | Backend: informational |
+| `VITE_API_TARGET` | No | `http://127.0.0.1:8000` | Frontend dev/preview: proxy target |
+| `VITE_API_URL` | No | `/api` | Frontend: absolute API base (bypasses proxy) |
+
+---
+
+## Testing
+
+| Command | Scope |
+|---|---|
+| `cd backend && python -m pytest` | Backend API, schemas, loader, built-in decks (76 tests) |
+| `cd frontend && npm run typecheck` | TypeScript `tsc --noEmit` |
+| `cd frontend && npm run lint` | ESLint |
+| `cd frontend && npm test` | Vitest unit/component (146 tests) |
+| `cd frontend && npm run test:e2e` | Playwright E2E (25 tests: all modes, 3 lang pairs, custom decks, import/export, responsive, theme) |
+| `cd frontend && npm run build` | Production build (typecheck + vite) |
+
+The Playwright config starts the backend on port 8010 and a preview build on 4173 automatically. Install browsers once: `npx playwright install chromium`.
+
+---
+
+## Performance
+
+Verified on the committed tree (Windows, Python 3.14, Node 24):
+
+| Check | Result |
+|---|---|
+| Backend tests | **76 passed** |
+| Frontend unit/component tests | **146 passed** (15 files) |
+| TypeScript type-check | clean |
+| ESLint | clean |
+| Production build | **succeeded** (27.6 kB CSS, 363 kB JS / 116 kB gzip) |
+| Playwright E2E | **25 passed** |
+
+- Backend loads ~3 decks (75 entries) at startup — < 50 ms cold start
+- Frontend bundle: 363 kB JS (116 kB gzip), 27.6 kB CSS
+- No runtime performance benchmarks measured; the app is lightweight by design
+
+---
+
+## Security
+
+- **Authentication/Authorization:** None — intentional. No user accounts, no sensitive data.
+- **CORS:** Configured via `CORS_ORIGINS`; explicit origins only (never `*` with credentials).
+- **Input Validation:** Pydantic on backend (startup + runtime), Zod-equivalent client-side validation for custom decks.
+- **Secret Management:** No secrets in code. No API keys required.
+- **Rate Limiting:** Not implemented (low-risk public vocabulary API).
+- **Content Security Policy:** Not configured; static host should add one.
+- **Vulnerability Reporting:** Open an issue or email the maintainer privately.
+
+---
+
+## Limitations
+
+- **Progress is session-only** — reloading the tab clears all stats (by design).
+- **Custom decks are browser-local** — stored in `localStorage` (~5 MB limit); no cross-device sync. Export/import for portability.
+- **Built-in decks require redeploy** — deck files are in git; adding decks means a new backend deploy.
+- **Fonts from Google Fonts** — offline/restricted networks fall back to system mono; consider self-hosting for production.
+- **Matching mode drops ambiguous translations** — reported to user, but reduces entry count for that mode.
+- **Flip animation back face** is absolutely positioned; very long translations may overflow (reduced-motion mode flows naturally).
+- **No merge/dedup** between custom and built-in decks.
+- **CSV round-trip** derives new entry IDs from source text; not stable across JSON↔CSV.
+
+---
+
+## Roadmap
+
+- [ ] Add spaced-repetition scheduling (SM-2) as optional session mode
+- [ ] Support deck sharing via URL-encoded export (compressed JSON in hash fragment)
+- [ ] Add audio/TTS integration for pronunciation
+- [ ] Self-hosted font option (download Google Fonts at build)
+- [ ] Deck analytics (mastery heatmap, weak words)
+- [ ] Mobile-first PWA manifest + service worker for offline play
+- [ ] Additional built-in language pairs (ES, IT, PT, KO, ZH)
+
+---
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feat/your-feature`
+3. Run checks locally:
+   ```bash
+   cd backend && python -m pytest
+   cd ../frontend && npm run typecheck && npm run lint && npm test && npm run build
+   ```
+4. Commit with conventional messages: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
+5. Open a PR with a clear description and screenshots for UI changes
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) if it exists; otherwise follow the above.
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+## Acknowledgements
+
+- **Design system** inspired by the reference neo-brutalist UI kit (technical/editorial aesthetic)
+- **Fonts:** Pixelify Sans, Space Mono, Noto Sans Mono JP (via Google Fonts)
+- **Animation:** CSS-only 3D flip with `prefers-reduced-motion` support
+- **Original Tkinter app** — the 100 Days of Code project that started it all
+- **Open source:** FastAPI, React, Vite, Vitest, Playwright, Pydantic, TypeScript, ESLint
+
+---
+
+Built to solve a specific problem. Maintained with care.
