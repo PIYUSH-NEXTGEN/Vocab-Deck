@@ -8,6 +8,23 @@
       name="description"
       content="Study vocabulary decks with flashcards, quizzes, typing and matching exercises."
     />
+    <script>
+      // Apply the saved (or system) theme before paint to avoid a flash.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("vocabdeck.theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
