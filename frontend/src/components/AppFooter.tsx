@@ -3,7 +3,7 @@ import { useReducedMotion } from "../lib/motion";
 
 const REPO_URL = "https://github.com/PIYUSH-NEXTGEN/Vocab-Deck";
 
-/** Official GitHub mark (Octicons, MIT) — inlined to avoid an icon dependency. */
+/** Official GitHub mark (Octicons, MIT) inlined to avoid an icon dependency. */
 function GitHubIcon() {
   return (
     <svg className="footer-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">

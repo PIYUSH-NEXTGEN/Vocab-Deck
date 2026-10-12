@@ -1,6 +1,6 @@
 /**
  * Home screen: selecting a deck expands the practice section and scrolls it
- * into view — exactly once per selection, and instant under reduced motion.
+ * into view exactly once per selection, and instant under reduced motion.
  */
 
 import { expect, test, vi } from "vitest";

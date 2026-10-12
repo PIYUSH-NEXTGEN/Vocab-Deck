@@ -83,7 +83,7 @@ function run(
   try {
     return animate(target, params) as unknown as AnimationInstance;
   } catch {
-    return null; // decorative only — never surface animation failures
+    return null; // decorative only, never surface animation failures
   }
 }
 

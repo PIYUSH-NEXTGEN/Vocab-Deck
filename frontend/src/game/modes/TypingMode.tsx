@@ -214,7 +214,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
               <p className={result === "correct" ? "notice" : "notice notice-error"}>
                 {result === "correct"
                   ? "Correct."
-                  : `Not quite — accepted: ${acceptedAnswers(entry).join(", ")}`}
+                  : `Not quite. Accepted: ${acceptedAnswers(entry).join(", ")}`}
               </p>
               <div className="row">
                 <Button variant="primary" type="submit">

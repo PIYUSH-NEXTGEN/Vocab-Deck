@@ -18,14 +18,14 @@ Intended for: language learners, students, and anyone building vocabulary in a n
 
 ## Features
 
-- **Four study modes** — Flashcards (with 3D flip), Multiple-choice Quiz, Typing (accent-insensitive option), Matching
-- **Three built-in language pairs** — English→French, English→German, English→Japanese (25 entries each, directly comparable)
-- **Custom decks** — Create, edit, import (JSON/CSV), export; validated client-side with same rules as built-in decks
-- **Session tracking** — Per-mode stats (correct/incorrect, streaks, time) preserved across mode switches; reset on demand
-- **Theme support** — Light/dark with `prefers-color-scheme` detection and `localStorage` persistence, no flash on load
-- **Accessibility** — `prefers-reduced-motion` swaps flip for instant face swap; focus-visible outlines; semantic HTML
-- **Offline-capable custom decks** — Stored in `localStorage`, portable via JSON/CSV export
-- **Typed API contract** — Shared TypeScript/Pydantic schemas; frontend client maps DTOs to domain types
+- **Four study modes**: Flashcards (with 3D flip), Multiple-choice Quiz, Typing (accent-insensitive option), Matching
+- **Three built-in language pairs**: English→French, English→German, English→Japanese (25 entries each, directly comparable)
+- **Custom decks**: Create, edit, import (JSON/CSV), export; validated client-side with same rules as built-in decks
+- **Session tracking**: Per-mode stats (correct/incorrect, streaks, time) preserved across mode switches; reset on demand
+- **Theme support**: Light/dark with `prefers-color-scheme` detection and `localStorage` persistence, no flash on load
+- **Accessibility**: `prefers-reduced-motion` swaps flip for instant face swap; focus-visible outlines; semantic HTML
+- **Offline-capable custom decks**: Stored in `localStorage`, portable via JSON/CSV export
+- **Typed API contract**: Shared TypeScript/Pydantic schemas; frontend client maps DTOs to domain types
 
 ---
 
@@ -34,7 +34,7 @@ Intended for: language learners, students, and anyone building vocabulary in a n
 ### Execution Flow
 
 1. **Input:** User selects a deck (built-in or custom) and a study mode on the Home page
-2. **Validation:** Frontend resolves the deck — built-in decks fetched from `/api/decks/{id}`, custom decks read from `localStorage`; entries validated against shared schema
+2. **Validation:** Frontend resolves the deck. Built-in decks fetched from `/api/decks/{id}`, custom decks read from `localStorage`; entries validated against shared schema
 3. **Processing:** Game engine (pure functions) builds a randomized session for the chosen mode:
    - Flashcards: sequential with flip timer
    - Quiz: generates 3 distractors per question, excludes alternatives
@@ -335,21 +335,21 @@ VITE_API_TARGET=http://127.0.0.1:8000
 
 ### Run Locally
 
-**Terminal 1 — Backend:**
+**Terminal 1 (Backend):**
 ```bash
 cd backend
 uvicorn app.main:app --reload --port 8000
 # → http://127.0.0.1:8000/api/health  {"status":"ok","deck_count":3}
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 (Frontend):**
 ```bash
 cd frontend
 npm run dev
 # → http://localhost:5173  (proxies /api to :8000)
 ```
 
-Open http://localhost:5173 — select a deck, choose a mode, start studying.
+Open http://localhost:5173 and select a deck, choose a mode, start studying.
 
 ---
 
@@ -361,21 +361,21 @@ Open http://localhost:5173 — select a deck, choose a mode, start studying.
 - Click **Play** to start
 
 ### Library (`/library`)
-- **Built-in decks** — read-only, view entries
-- **Custom decks** — create new, edit, delete, export (JSON/CSV), import
+- **Built-in decks**: read-only, view entries
+- **Custom decks**: create new, edit, delete, export (JSON/CSV), import
 - Import: drag-and-drop or click to select `.json`/`.csv`; preview validates before confirm
 
 ### Editor (`/editor` or `/editor/:id`)
-- Name, description, source/target language codes (BCP-47, e.g., `es`, `zh-Hans`)
+- Name, description, source/target language names (e.g., `english`, `hindi`, `french`)
 - Entry grid: add/edit/remove rows; alternatives and tags as comma-separated values
 - Save writes to `localStorage`; deck ID is stable on edit
 
 ### Play (`/play/:mode/:deckId`)
-- **Flashcards** — space/click to flip, ←/→ or buttons to navigate, self-assess (✅/❌)
-- **Quiz** — click option, immediate feedback, next auto-advances
-- **Typing** — type answer, Enter to submit; toggle "Ignore accents" for kana/umlauts
-- **Matching** — drag to pair source↔target; ambiguous translations dropped with notice
-- **Session bar** — shows correct/incorrect/streak per mode; **Restart session** resets
+- **Flashcards**: space/click to flip, ←/→ or buttons to navigate, self-assess (✅/❌)
+- **Quiz**: click option, immediate feedback, next auto-advances
+- **Typing**: type answer, Enter to submit; toggle "Ignore accents" for kana/umlauts
+- **Matching**: drag to pair source↔target; ambiguous translations dropped with notice
+- **Session bar**: shows correct/incorrect/streak per mode; **Restart session** resets
 
 ### Keyboard Shortcuts (Play page)
 | Key | Action |
@@ -426,7 +426,7 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 | Production build | **succeeded** (27.6 kB CSS, 363 kB JS / 116 kB gzip) |
 | Playwright E2E | **25 passed** |
 
-- Backend loads ~3 decks (75 entries) at startup — < 50 ms cold start
+- Backend loads ~3 decks (75 entries) at startup, under 50 ms cold start
 - Frontend bundle: 363 kB JS (116 kB gzip), 27.6 kB CSS
 - No runtime performance benchmarks measured; the app is lightweight by design
 
@@ -434,7 +434,7 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 
 ## Security
 
-- **Authentication/Authorization:** None — intentional. No user accounts, no sensitive data.
+- **Authentication/Authorization:** None. Intentional. No user accounts, no sensitive data.
 - **CORS:** Configured via `CORS_ORIGINS`; explicit origins only (never `*` with credentials).
 - **Input Validation:** Pydantic on backend (startup + runtime), Zod-equivalent client-side validation for custom decks.
 - **Secret Management:** No secrets in code. No API keys required.

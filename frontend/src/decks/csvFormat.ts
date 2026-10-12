@@ -14,8 +14,8 @@
  * - `#` lines before the table carry deck metadata (name, description, languages).
  * - `alternatives` and `tags` use `|` as the list separator.
  * - Quoting follows RFC 4180; commas inside a field are quoted.
- * - Entry ids are derived from the source text (same slugs as backend CSV decks),
- *   with -2/-3 suffixes for collisions — the file does not store ids.
+* - Entry ids are derived from the source text (same slugs as backend CSV decks),
+  *   with -2/-3 suffixes for collisions. The file does not store ids.
  *
  * Parsing produces the same canonical document shape as JSON imports so both
  * formats share one validation path.
@@ -73,7 +73,7 @@ export function splitCsvRows(text: string): string[][] {
   if (field !== "" || row.length > 0) pushRow();
 
   if (inQuotes) {
-    throw new Error("Unterminated quoted field — check for a missing closing quote.");
+    throw new Error("Unterminated quoted field. Check for a missing closing quote.");
   }
   return rows;
 }

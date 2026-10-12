@@ -40,7 +40,7 @@ function baseUrl(): string {
 
 interface ErrorBody {
   error?: { code?: string; message?: string };
-  /** FastAPI's default error shape — from a server that is NOT this service. */
+  /** FastAPI's default error shape from a server that is NOT this service. */
   detail?: unknown;
 }
 

@@ -86,7 +86,7 @@ textarea {
   box-shadow: 0 0 0 5px var(--focus-ring);
 }
 
-/* Form controls keep the black outline only — the halo reads as clutter
+/* Form controls keep the black outline only. The halo reads as clutter
    around inputs and selects, and the outline alone is clearly visible. */
 input:focus-visible,
 textarea:focus-visible,

@@ -1,5 +1,5 @@
 /**
- * Product footer: brand note, project links, dynamic year — and guards that
+ * Product footer: brand note, project links, dynamic year, and guards that
  * removed sections (logo mark, README/documentation, resources) stay out.
  */
 

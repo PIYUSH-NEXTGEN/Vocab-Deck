@@ -208,7 +208,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
             <p className={selected === round.answer ? "notice" : "notice notice-error"}>
               {selected === round.answer
                 ? "Correct."
-                : `Not quite — "${round.answer}" is the translation.`}
+                : `Not quite. "${round.answer}" is the translation.`}
             </p>
             <div className="row">
               <Button variant="primary" onClick={next}>

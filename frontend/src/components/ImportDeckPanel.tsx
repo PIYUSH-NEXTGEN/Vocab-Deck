@@ -103,7 +103,7 @@ export function ImportDeckPanel({
           rows={5}
           value={text}
           spellCheck={false}
-          placeholder='{"version":1,"deck":{...},"entries":[...]}  — or —  # deck: ...'
+          placeholder='{"version":1,"deck":{...},"entries":[...]} or # deck: ...'
           onChange={(event) => runParse(event.target.value, null)}
           aria-label="Paste deck JSON or CSV"
         />
@@ -124,7 +124,7 @@ export function ImportDeckPanel({
 
       {preview ? (
         <div className="stack import-preview" role="region" aria-label="Import preview">
-          <p className="label">Preview{fileName ? ` — ${fileName}` : ""}</p>
+          <p className="label">Preview{fileName ? `: ${fileName}` : ""}</p>
           <div className="stack-tight">
             <h4>{preview.deck.name}</h4>
             <p className="faint">

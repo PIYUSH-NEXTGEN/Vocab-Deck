@@ -4,18 +4,29 @@ import { Panel } from "../components/Panel";
 
 /**
  * About page: what the project is, how to use it and how it works. Plain
- * documentation inside the product — no marketing copy.
+ * documentation inside the product, no marketing copy.
  */
 export function AboutPage() {
   return (
     <div className="shell page about-page">
-      <header className="stack about-header">
-        <p className="label">About</p>
-        <h1 className="hero-title">Vocab Deck</h1>
-        <p className="muted hero-description">
-          A vocabulary trainer for any language pair. Four practice modes, built-in decks,
-          your own decks, and nothing to sign up for.
-        </p>
+      <header className="about-header">
+        <div className="about-hero">
+          <p className="about-label">About</p>
+          <h1 className="hero-title">Vocab Deck</h1>
+          <p className="hero-description">
+            A vocabulary trainer for any language pair. Four practice modes, built-in decks,
+            your own decks, and nothing to sign up for.
+          </p>
+        </div>
+        <nav className="about-toc" aria-label="On this page">
+          <ul>
+            <li><a href="#about-what">What it is</a></li>
+            <li><a href="#about-how-to-use">How to use it</a></li>
+            <li><a href="#about-modes">The four modes</a></li>
+            <li><a href="#about-decks">Decks and your data</a></li>
+            <li><a href="#about-details">Details worth knowing</a></li>
+          </ul>
+        </nav>
       </header>
 
       <hr className="rule" />
@@ -23,11 +34,11 @@ export function AboutPage() {
       <section className="section" aria-labelledby="about-what">
         <h2 id="about-what">What it is</h2>
         <p className="muted measure">
-          Vocab Deck helps you learn vocabulary through active recall. You pick a deck —
-          a list of word/translation pairs such as French–English or German–Japanese —
-          and practise it with flashcards, a multiple-choice quiz, typing, or matching.
-          Scoring distinguishes what you actively recalled (quiz, typing) from what you
-          recognised or self-assessed (flashcards, matching).
+          Vocab Deck helps you learn vocabulary through active recall. You pick a deck
+          containing word and translation pairs such as French to English or German to Japanese,
+          then practice with flashcards, a multiple-choice quiz, typing, or matching.
+          Scoring separates what you actively recalled (quiz, typing) from what you
+          recognized or self-assessed (flashcards, matching).
         </p>
       </section>
 
@@ -36,7 +47,7 @@ export function AboutPage() {
         <ol className="about-steps measure">
           <li>
             <strong>Choose a deck</strong> on the home screen. Use the language-pair filter to
-            narrow the list; click anywhere on a card to select it.
+            narrow the list, then click anywhere on a card to select it.
           </li>
           <li>
             <strong>Pick a practice mode</strong> from the four options that appear below your
@@ -48,7 +59,7 @@ export function AboutPage() {
             results separately.
           </li>
           <li>
-            <strong>Restart when you want a clean slate</strong> — the restart button next to
+            <strong>Restart when you want a clean slate.</strong> The restart button next to
             the session summary clears the session. Leaving or reloading the tab does the same.
           </li>
         </ol>
@@ -101,7 +112,7 @@ export function AboutPage() {
       <section className="section" aria-labelledby="about-details">
         <h2 id="about-details">Details worth knowing</h2>
         <ul className="about-details measure">
-          <li>Any language pair works — language codes like <code>fr</code>, <code>de</code>, <code>ja</code> or <code>zh-Hans</code>.</li>
+          <li>Any language pair works. Enter full language names like <code>english</code>, <code>hindi</code>, <code>french</code> or <code>japanese</code>.</li>
           <li>Typing accepts alternative translations and can ignore accents and diacritics.</li>
           <li>Matching drops entries whose translation is duplicated elsewhere in the deck, so every pair stays unambiguous.</li>
           <li>Animations respect your system's reduced-motion setting.</li>

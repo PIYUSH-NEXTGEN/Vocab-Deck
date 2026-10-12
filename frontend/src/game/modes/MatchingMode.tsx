@@ -162,7 +162,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
     recordMatchAttempt(false);
     setSelectedSourceId(null);
     setIncorrectTargetId(pairId);
-    setFeedback({ tone: "incorrect", message: "Not a pair — try again." });
+    setFeedback({ tone: "incorrect", message: "Not a pair. Try again." });
     register(shake(element));
     feedbackTimer.current = window.setTimeout(() => {
       setFeedback(null);

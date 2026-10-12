@@ -58,8 +58,8 @@ export function HomePage() {
   );
   const selected = decks.find((deck) => deck.id === selectedDeckId) ?? null;
 
-  // Scroll to the expanded section only when a (new) deck is selected — never on
-  // unrelated re-renders, and never when the selection is cleared.
+// Scroll to the expanded section only when a (new) deck is selected, never on
+// unrelated re-renders, and never when the selection is cleared.
   useEffect(() => {
     if (!selected) {
       scrolledForId.current = null;
