@@ -2,7 +2,7 @@
 
 > A vocabulary practice app: choose a deck (any language pair), then train with flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was replaced by a React frontend and a FastAPI vocabulary API.
 
-[Live Demo](#) · [Documentation](docs/architecture.md) · [Report a Bug](../../issues)
+[Live Demo](#) · [Report a Bug](../../issues)
 
 ---
 
@@ -265,9 +265,6 @@ Vocab-Deck/
 │   ├── playwright.config.ts
 │   ├── vite.config.ts           # Dev/preview proxy to backend
 │   └── package.json
-├── docs/
-│   ├── architecture.md          # Audit, data model, API contract, design system
-│   └── deployment.md            # Deployment, operations, verification record
 ├── .gitignore
 └── README.md
 ```

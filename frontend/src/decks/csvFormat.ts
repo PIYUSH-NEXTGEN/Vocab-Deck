@@ -1,5 +1,5 @@
 /**
- * Portable CSV format for custom decks (documented in docs/architecture.md).
+ * Portable CSV format for custom decks.
  *
  * The file is a comment header followed by a regular CSV table:
  *

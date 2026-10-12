@@ -7,7 +7,7 @@ module with identical rules:
 2. ``<id>.csv`` + ``<id>.meta.json`` — tabular vocabulary plus a JSON metadata
    sidecar. Columns: ``source,target[,alternatives,tags]`` with ``|``-separated lists.
 
-Rules (see docs/architecture.md):
+Rules:
 - deck id: ``^[a-z0-9][a-z0-9_-]{0,63}$``, unique across all built-in decks;
 - entry ids: same pattern, unique within a deck (CSV decks get slugs derived from the
   source text, with ``-2``, ``-3`` suffixes for collisions — never renumbered);

@@ -1,7 +1,7 @@
 """Pydantic schemas: the single source of truth for the API contract.
 
 Field names are the wire format (snake_case). The React frontend may re-map to
-camelCase internally; see docs/architecture.md.
+camelCase internally.
 """
 
 from __future__ import annotations

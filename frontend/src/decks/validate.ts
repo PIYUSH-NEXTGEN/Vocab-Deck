@@ -1,7 +1,6 @@
 /**
  * Validation for custom decks on the client. Mirrors the backend deck rules
- * (docs/architecture.md) so imported or edited decks behave identically to
- * built-in ones. Rules:
+ * so imported or edited decks behave identically to built-in ones. Rules:
  * - deck id: ^[a-z0-9][a-z0-9_-]{0,63}$
  * - languages: any non-empty string (full language names like "english", "hindi")
  * - entry ids unique within the deck; no duplicate (source, target) pairs

@@ -70,7 +70,7 @@ export interface PlayableDeck {
   origin: "builtin" | "custom";
 }
 
-/** Portable backup format for custom decks (see docs/architecture.md). */
+/** Portable backup format for custom decks. */
 export interface CustomDeckDocument {
   version: 1;
   deck: {

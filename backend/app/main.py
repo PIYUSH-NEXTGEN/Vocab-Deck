@@ -67,7 +67,7 @@ def create_app(
         description=(
             "Vocabulary service for the Flash Card Game. Serves version-controlled "
             "built-in decks (multiple language pairs). No authentication, no database, "
-            "no gameplay-progress endpoints. See docs/architecture.md."
+            "no gameplay-progress endpoints."
         ),
     )
     app.state.settings = settings
