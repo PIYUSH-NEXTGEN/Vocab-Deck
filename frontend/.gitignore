@@ -4,3 +4,8 @@ coverage
 *.local
 .DS_Store
 design.png
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
