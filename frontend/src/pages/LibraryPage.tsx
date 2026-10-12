@@ -73,7 +73,7 @@ export function LibraryPage() {
         <h1>Your decks</h1>
         <p className="muted measure">
           Built-in decks come from the vocabulary API and are read-only. Custom decks live
-          in this browser only — export them as JSON or CSV to keep a portable backup.
+          in this browser only. Export them as JSON or CSV to keep a portable backup.
         </p>
         <div className="row row-space library-controls">
           <Button variant="primary" onClick={() => navigate("/editor")}>

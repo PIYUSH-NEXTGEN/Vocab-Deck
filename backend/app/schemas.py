@@ -11,8 +11,7 @@ import unicodedata
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-# BCP-47-ish primary tag with an optional region or script: fr, de, ja, zh-Hans.
-LANGUAGE_PATTERN = re.compile(r"^[a-z]{2,3}(-[A-Za-z]{2,4})?$")
+# Deck id pattern: lowercase ASCII with hyphens/underscores
 DECK_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 MAX_TEXT = 500
 
@@ -97,11 +96,10 @@ class DeckSummary(BaseModel):
     @field_validator("source_language", "target_language")
     @classmethod
     def _validate_language(cls, value: str) -> str:
-        if not LANGUAGE_PATTERN.match(value):
-            raise ValueError(
-                "must be a valid language code, e.g. 'fr', 'de', 'ja' or 'zh-Hans'"
-            )
-        return value
+        text = normalize_text(value)
+        if not text:
+            raise ValueError("language name is required")
+        return text
 
 
 class DeckListResponse(BaseModel):

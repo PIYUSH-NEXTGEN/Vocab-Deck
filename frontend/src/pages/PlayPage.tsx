@@ -19,8 +19,8 @@ import { Spinner } from "../components/Spinner";
 import { LanguageChip } from "../components/Chip";
 
 /**
- * Play screen. Resolves the selected deck — custom decks come from browser
- * storage, built-in decks from the API — and renders the active game mode.
+ * Play screen. Resolves the selected deck: custom decks come from browser
+ * storage, built-in decks from the API, and renders the active game mode.
  * All gameplay progress lives in the session context (memory only).
  */
 export function PlayPage() {

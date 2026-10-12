@@ -7,8 +7,8 @@ const CUSTOM_DECK = {
     id: "custom-e2e-spanish",
     name: "E2E Spanish",
     description: "Created by the end-to-end suite",
-    sourceLanguage: "es",
-    targetLanguage: "en",
+    sourceLanguage: "spanish",
+    targetLanguage: "english",
     entryCount: 2,
   },
   entries: [
@@ -26,8 +26,8 @@ test.describe("custom decks", () => {
     // --- Create through the editor ---
     await page.getByRole("button", { name: "New custom deck" }).click();
     await page.getByLabel("Deck name").fill("E2E Spanish");
-    await page.getByLabel("Source language code").fill("es");
-    await page.getByLabel("Target language code").fill("en");
+    await page.getByLabel("Source language").fill("spanish");
+    await page.getByLabel("Target language").fill("english");
     await page.getByLabel("Entry 1 source").fill("hola");
     await page.getByLabel("Entry 1 translation").fill("hello");
     await page.getByRole("button", { name: "Add entry" }).click();
@@ -126,8 +126,8 @@ test.describe("session lifecycle", () => {
     await expect(page.getByLabel("Session statistics")).toContainText(/Quiz\d\/1/);
 
     const keys = await page.evaluate(() => Object.keys(window.localStorage));
-    // Only custom decks (user data) and the theme preference may persist —
-    // never scores, answers or session state.
+    // Only custom decks (user data) and the theme preference may persist.
+    // Never scores, answers or session state.
     const gameplayKeys = keys.filter(
       (key) => !key.includes("customDecks") && !key.startsWith("vocabdeck.theme"),
     );

@@ -167,7 +167,7 @@ def test_bad_csv_header_rejected(build_client):
 
 
 def test_invalid_language_in_meta_rejected(build_client):
-    meta = {"id": "d", "name": "D", "source_language": "english", "target_language": "en"}
+    meta = {"id": "d", "name": "D", "source_language": "", "target_language": "en"}
     with pytest.raises(DeckLoadError, match="invalid deck metadata"):
         build_client({"d.csv": "source,target\nhello,hola\n", "d.meta.json": json.dumps(meta)})
 

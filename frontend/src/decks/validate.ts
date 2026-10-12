@@ -3,7 +3,7 @@
  * (docs/architecture.md) so imported or edited decks behave identically to
  * built-in ones. Rules:
  * - deck id: ^[a-z0-9][a-z0-9_-]{0,63}$
- * - languages: ^[a-z]{2,3}(-[A-Za-z]{2,4})?$
+ * - languages: any non-empty string (full language names like "english", "hindi")
  * - entry ids unique within the deck; no duplicate (source, target) pairs
  * - source / target / alternatives / tags non-empty after NFC normalization
  * - at least one entry (never fabricate or pad)
@@ -12,7 +12,6 @@
 import type { CustomDeckDocument, PlayableDeck, VocabularyEntry } from "../api/types";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-const LANGUAGE_PATTERN = /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/;
 
 export type ValidationResult =
   | { ok: true; deck: CustomDeckDocument }
@@ -121,11 +120,11 @@ export function validateCustomDeck(
   }
   const sourceLanguage = isNonEmptyString(deck.sourceLanguage) ? normalizeText(deck.sourceLanguage) : "";
   const targetLanguage = isNonEmptyString(deck.targetLanguage) ? normalizeText(deck.targetLanguage) : "";
-  if (!sourceLanguage || !LANGUAGE_PATTERN.test(sourceLanguage)) {
-    errors.push(`Source language "${deck.sourceLanguage ?? ""}" is not a valid language code.`);
+  if (!sourceLanguage) {
+    errors.push("Source language is required.");
   }
-  if (!targetLanguage || !LANGUAGE_PATTERN.test(targetLanguage)) {
-    errors.push(`Target language "${deck.targetLanguage ?? ""}" is not a valid language code.`);
+  if (!targetLanguage) {
+    errors.push("Target language is required.");
   }
 
   const entries: VocabularyEntry[] = [];

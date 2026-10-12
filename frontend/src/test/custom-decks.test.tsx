@@ -11,11 +11,11 @@ import { listDecks } from "../api/client";
 const validDoc = {
   version: 1,
   deck: {
-    id: "custom-es-en",
+    id: "custom-spanish-english",
     name: "Spanish basics",
     description: "Everyday words",
-    sourceLanguage: "es",
-    targetLanguage: "en",
+    sourceLanguage: "spanish",
+    targetLanguage: "english",
     entryCount: 2,
   },
   entries: [
@@ -33,16 +33,16 @@ test("a valid custom deck document validates", () => {
   expect(result.deck.entries).toHaveLength(2);
 });
 
-test("rejects missing names, bad language codes and empty entries", () => {
+test("rejects missing names, empty language names and empty entries", () => {
   const result = validateCustomDeck({
     version: 1,
-    deck: { id: "custom-x", name: "  ", sourceLanguage: "english", targetLanguage: "en", entryCount: 0 },
+    deck: { id: "custom-x", name: "  ", sourceLanguage: "", targetLanguage: "english", entryCount: 0 },
     entries: [],
   });
   expect(result.ok).toBe(false);
   if (result.ok) return;
   expect(result.errors.join(" ")).toMatch(/deck name is required/i);
-  expect(result.errors.join(" ")).toMatch(/not a valid language code/i);
+  expect(result.errors.join(" ")).toMatch(/source language is required/i);
   expect(result.errors.join(" ")).toMatch(/at least one entry/i);
 });
 
@@ -77,7 +77,7 @@ test("rejects entries with empty source or blank alternatives", () => {
 test("accepts non-Latin scripts and alternative translations untouched", () => {
   const result = validateCustomDeck({
     ...validDoc,
-    deck: { ...validDoc.deck, sourceLanguage: "de", targetLanguage: "ja" },
+    deck: { ...validDoc.deck, sourceLanguage: "german", targetLanguage: "japanese" },
     entries: [{ id: "strasse", source: "Straße", target: "道", alternatives: ["みち"], tags: ["noun"] }],
   });
   expect(result.ok).toBe(true);
@@ -93,14 +93,14 @@ test("custom deck storage round-trips through localStorage", () => {
   expect(listCustomDecks()).toHaveLength(1);
   expect(listCustomDecks()[0].name).toBe("Spanish basics");
 
-  const found = getCustomDeck("custom-es-en");
+  const found = getCustomDeck("custom-spanish-english");
   expect(found?.entries[1].alternatives).toEqual(["thanks"]);
 
   const exported = JSON.parse(toExportDocument(result.deck));
   expect(exported.version).toBe(1);
   expect(exported.entries).toHaveLength(2);
 
-  deleteCustomDeck("custom-es-en");
+  deleteCustomDeck("custom-spanish-english");
   expect(listCustomDecks()).toHaveLength(0);
 });
 

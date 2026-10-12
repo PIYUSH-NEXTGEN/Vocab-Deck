@@ -22,8 +22,8 @@ const DECK: CustomDeckDocument = {
     id: "custom-spanish-basics",
     name: "Spanish basics",
     description: "Everyday words",
-    sourceLanguage: "es",
-    targetLanguage: "en",
+    sourceLanguage: "spanish",
+    targetLanguage: "english",
     entryCount: 2,
   },
   entries: [
@@ -37,8 +37,8 @@ const PLAYABLE_CUSTOM: PlayableDeck = {
   id: "custom-play",
   name: "Playable",
   description: "",
-  sourceLanguage: "es",
-  targetLanguage: "en",
+  sourceLanguage: "spanish",
+  targetLanguage: "english",
   entryCount: 3,
   origin: "custom",
   entries: [
@@ -99,8 +99,8 @@ describe("custom deck creation and editing", () => {
     renderAppAt("/editor");
 
     await user.type(screen.getByLabelText(/deck name/i), "Kitchen words");
-    await user.type(screen.getByLabelText(/source language code/i), "it");
-    await user.type(screen.getByLabelText(/target language code/i), "en");
+    await user.type(screen.getByLabelText(/source language/i), "italian");
+    await user.type(screen.getByLabelText(/target language/i), "english");
     await user.type(screen.getByLabelText("Entry 1 source"), "pane");
     await user.type(screen.getByLabelText("Entry 1 translation"), "bread");
     await user.click(screen.getByRole("button", { name: /add entry/i }));
@@ -129,7 +129,8 @@ describe("custom deck creation and editing", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/deck name is required/i);
-    expect(alert).toHaveTextContent(/not a valid language code/i);
+    expect(alert).toHaveTextContent(/source language is required/i);
+    expect(alert).toHaveTextContent(/target language is required/i);
     expect(alert).toHaveTextContent(/at least one entry/i);
     expect(storedDecks()).toHaveLength(0);
   });
@@ -139,7 +140,7 @@ describe("custom deck creation and editing", () => {
     const user = userEvent.setup();
     renderAppAt(`/editor/${DECK.deck.id}`);
 
-    expect(await screen.findByRole("heading", { name: /edit “spanish basics”/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /edit.*spanish basics/i })).toBeInTheDocument();
     // Existing entry ids are displayed for stability.
     expect(screen.getAllByTitle("Entry id (stable)")[0]).toHaveTextContent("hola");
 
@@ -265,7 +266,7 @@ describe("importing decks", () => {
     saveCustomDeck(DECK);
     const csv = deckToCsv(getCustomDeck(DECK.deck.id)!);
     expect(csv).toContain("# deck: Spanish basics");
-    expect(csv).toContain("# sourceLanguage: es");
+    expect(csv).toContain("# sourceLanguage: spanish");
     expect(csv).toContain("source,target,alternatives,tags");
     expect(csv).toContain("hola,hello,hi,greeting");
 
@@ -276,8 +277,8 @@ describe("importing decks", () => {
     expect(preview.deck.deck).toMatchObject({
       id: "custom-spanish-basics",
       name: "Spanish basics",
-      sourceLanguage: "es",
-      targetLanguage: "en",
+      sourceLanguage: "spanish",
+      targetLanguage: "english",
       entryCount: 2,
     });
     expect(preview.deck.entries.map((e) => [e.id, e.source, e.target, e.alternatives])).toEqual([
@@ -352,17 +353,17 @@ describe("importing decks", () => {
     expect(blank.errors.join(" ")).toMatch(/source text is required/i);
   });
 
-  test("rejects invalid language codes and unsupported versions", () => {
+  test("rejects empty language names and unsupported versions", () => {
     const badLang = previewImport(
       JSON.stringify({
         version: 1,
-        deck: { id: "custom-x", name: "X", sourceLanguage: "english", targetLanguage: "en" },
+        deck: { id: "custom-x", name: "X", sourceLanguage: "", targetLanguage: "english" },
         entries: [{ id: "a", source: "a", target: "b" }],
       }),
     );
     expect(badLang.ok).toBe(false);
     if (badLang.ok) return;
-    expect(badLang.errors.join(" ")).toMatch(/not a valid language code/i);
+    expect(badLang.errors.join(" ")).toMatch(/source language is required/i);
 
     const badVersion = previewImport(JSON.stringify({ version: 2, deck: {}, entries: [] }));
     expect(badVersion.ok).toBe(false);

@@ -64,14 +64,14 @@ def test_entry_rejects_unknown_fields():
 
 
 def test_deck_summary_valid_languages():
-    for code in ["fr", "en", "de", "ja", "zh-Hans"]:
+    for code in ["fr", "en", "de", "ja", "zh-Hans", "english", "hindi", "spanish"]:
         summary = DeckSummary(
             id="d", name="D", source_language=code, target_language="en"
         )
         assert summary.source_language == code
 
 
-@pytest.mark.parametrize("code", ["", "f", "FR", "english", "fr-Latn-FR", "fr_FR", "2n"])
+@pytest.mark.parametrize("code", ["", "   "])
 def test_deck_summary_rejects_invalid_languages(code):
     with pytest.raises(ValidationError):
         DeckSummary(id="d", name="D", source_language=code, target_language="en")

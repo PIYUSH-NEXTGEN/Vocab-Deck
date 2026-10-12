@@ -106,11 +106,11 @@ export function CustomDeckEditor({
 
   return (
     <Panel className="stack" as="section">
-      <div className="stack-tight">
-        <h3>{isEdit ? `Edit “${deck?.deck.name}”` : "Create a custom deck"}</h3>
+<div className="stack-tight">
+        <h3>{isEdit ? `Edit "${deck?.deck.name}"` : "Create a custom deck"}</h3>
         <p className="faint">
-          Any language pair works — codes like <code>fr</code>, <code>de</code>, <code>ja</code>{" "}
-          or <code>zh-Hans</code>. Decks are stored in this browser only.
+          Any language pair works. Enter full language names like <code>english</code>, <code>hindi</code>, <code>french</code>{" "}
+          or <code>japanese</code>. Decks are stored in this browser only.
           {isEdit ? " Existing entry ids are preserved when you edit." : ""}
         </p>
       </div>
@@ -125,19 +125,19 @@ export function CustomDeckEditor({
           />
         </label>
         <label className="stack-tight">
-          <span className="label">Source language code</span>
+          <span className="label">Source language</span>
           <input
             value={sourceLanguage}
             onChange={(event) => setSourceLanguage(event.target.value)}
-            placeholder="es"
+            placeholder="english"
           />
         </label>
         <label className="stack-tight">
-          <span className="label">Target language code</span>
+          <span className="label">Target language</span>
           <input
             value={targetLanguage}
             onChange={(event) => setTargetLanguage(event.target.value)}
-            placeholder="en"
+            placeholder="hindi"
           />
         </label>
         <label className="stack-tight span-2">
