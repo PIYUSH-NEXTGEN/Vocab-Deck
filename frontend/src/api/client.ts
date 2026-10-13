@@ -150,13 +150,56 @@ export function toDeckSummary(dto: DeckSummaryDto): DeckSummary {
 
 /* ---------- Endpoints ---------- */
 
+/**
+ * Tiny read-through cache for GET endpoints. Every page mount refetches
+ * otherwise, so navigating Home <-> Library pays a full server round trip
+ * (including a serverless cold start in deployment) each time. Entries live
+ * for DECKS_TTL_MS; only successes are cached, so errors and retries always
+ * hit the network. Concurrent mounts share one in-flight request.
+ */
+const DECKS_TTL_MS = 5 * 60_000;
+const cache = new Map<string, { data: unknown; at: number }>();
+const inflight = new Map<string, Promise<unknown>>();
+
+async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < DECKS_TTL_MS) return hit.data as T;
+  const ongoing = inflight.get(key);
+  if (ongoing) return ongoing as Promise<T>;
+  const pending = load().then(
+    (data) => {
+      cache.set(key, { data, at: Date.now() });
+      inflight.delete(key);
+      return data;
+    },
+    (error) => {
+      inflight.delete(key);
+      throw error;
+    },
+  );
+  inflight.set(key, pending);
+  return pending;
+}
+
+/** Clears the endpoint cache (tests; logout-style resets if ever needed). */
+export function clearApiCache(): void {
+  cache.clear();
+  inflight.clear();
+}
+
 export async function listDecks(signal?: AbortSignal): Promise<DeckSummary[]> {
-  const data = await request<DeckListResponseDto>("/decks", signal);
-  return data.decks.map(toDeckSummary);
+  return cached("decks", async () => {
+    const data = await request<DeckListResponseDto>("/decks", signal);
+    return data.decks.map(toDeckSummary);
+  });
 }
 
 export async function getDeck(deckId: string, signal?: AbortSignal): Promise<DeckSummary> {
-  return toDeckSummary(await request<DeckSummaryDto>(`/decks/${encodeURIComponent(deckId)}`, signal));
+  return cached(`deck:${deckId}`, async () => {
+    return toDeckSummary(
+      await request<DeckSummaryDto>(`/decks/${encodeURIComponent(deckId)}`, signal),
+    );
+  });
 }
 
 export async function getEntries(
@@ -168,16 +211,16 @@ export async function getEntries(
   if (params.limit != null) query.set("limit", String(params.limit));
   if (params.offset != null) query.set("offset", String(params.offset));
   const suffix = query.toString() ? `?${query}` : "";
-  const data = await request<EntryPageDto>(
-    `/decks/${encodeURIComponent(deckId)}/entries${suffix}`,
-    signal,
-  );
-  return {
-    entries: data.entries.map(toVocabularyEntry),
-    total: data.total,
-    limit: data.limit,
-    offset: data.offset,
-  };
+  const path = `/decks/${encodeURIComponent(deckId)}/entries${suffix}`;
+  return cached(`entries:${path}`, async () => {
+    const data = await request<EntryPageDto>(path, signal);
+    return {
+      entries: data.entries.map(toVocabularyEntry),
+      total: data.total,
+      limit: data.limit,
+      offset: data.offset,
+    };
+  });
 }
 
 /** Type-safe narrowing for error branches. */

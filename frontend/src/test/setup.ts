@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { clearApiCache } from "../api/client";
 
 // jsdom has no matchMedia; provide controllable stubs for responsive and
 // reduced-motion tests.
@@ -89,6 +90,7 @@ beforeEach(() => {
   reducedMotionMatches = false;
   listeners.clear();
   window.localStorage.clear();
+  clearApiCache();
 });
 
 afterEach(() => {
