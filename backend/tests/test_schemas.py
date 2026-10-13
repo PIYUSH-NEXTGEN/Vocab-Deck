@@ -88,3 +88,17 @@ def test_deck_summary_same_source_and_target_allowed():
 def test_deck_summary_rejects_negative_entry_count():
     with pytest.raises(ValidationError):
         DeckSummary(id="d", name="D", source_language="fr", target_language="en", entry_count=-1)
+
+
+def test_deck_summary_rejects_empty_name():
+    from pydantic import ValidationError as VE
+
+    import pytest as _pytest
+
+    with _pytest.raises(VE):
+        DeckSummary(id="d", name="   ", source_language="en", target_language="en")
+
+
+def test_deck_summary_accepts_empty_description():
+    summary = DeckSummary(id="d", name="D", source_language="en", target_language="en")
+    assert summary.description == ""

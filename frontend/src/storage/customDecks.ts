@@ -84,7 +84,11 @@ export function duplicateCustomDeck(id: string): CustomDeckDocument | null {
       name: `${source.deck.name} copy`,
       entryCount: source.entries.length,
     },
-    entries: source.entries.map((entry) => ({ ...entry })),
+    entries: source.entries.map((entry) => ({
+      ...entry,
+      alternatives: [...entry.alternatives],
+      tags: [...entry.tags],
+    })),
     exportedAt: new Date().toISOString(),
   };
   writeAll([...decks, copy]);

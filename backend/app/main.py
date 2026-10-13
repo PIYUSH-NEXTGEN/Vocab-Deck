@@ -79,7 +79,7 @@ def create_app(
             CORSMiddleware,
             allow_origins=["*"],
             allow_credentials=False,
-            allow_methods=["*"],
+            allow_methods=["GET"],
             allow_headers=["*"],
         )
     else:
@@ -87,9 +87,16 @@ def create_app(
             CORSMiddleware,
             allow_origins=origins,
             allow_credentials=True,
-            allow_methods=["*"],
+            allow_methods=["GET"],
             allow_headers=["*"],
         )
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+        """Minimal hardening for JSON API responses (no behavior change)."""
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
 
     # FastAPI's Annotated+Depends form for the store isn't honored here, so handlers
     # read the store from app.state directly (keeps create_app injectable in tests).

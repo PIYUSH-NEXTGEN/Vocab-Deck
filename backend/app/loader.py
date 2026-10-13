@@ -54,6 +54,10 @@ def slugify(text: str) -> str:
     """Deterministic ASCII slug for a source text; ``''`` when nothing survives.
 
     ``aujourd'hui`` -> ``aujourdhui``, ``frère`` -> ``frere``, ``Straße`` -> ``strasse``.
+
+    Slugs are capped at 60 characters so generated entry ids always fit the
+    ``^[a-z0-9][a-z0-9_-]{0,63}$`` pattern (leaving room for ``-2``-style
+    collision suffixes), matching the frontend's truncation.
     """
     decomposed = unicodedata.normalize("NFKD", text.strip())
     stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
@@ -61,7 +65,7 @@ def slugify(text: str) -> str:
         stripped = stripped.replace(src, dst)
     stripped = stripped.replace("'", "")  # aujourd'hui -> aujourdhui, not aujourd-hui
     ascii_text = stripped.casefold().encode("ascii", "ignore").decode("ascii")
-    return SLUG_PATTERN.sub("-", ascii_text).strip("-")
+    return SLUG_PATTERN.sub("-", ascii_text).strip("-")[:60].rstrip("-")
 
 
 @dataclass(frozen=True)
@@ -73,15 +77,21 @@ class Deck:
 
 
 def _parse_rows(
-    rows: list[dict], *, assign_ids: bool, deck_label: str
+    rows: list[object], *, assign_ids: bool, deck_label: str
 ) -> tuple[list[VocabularyEntry], list[str]]:
     """Turn raw entry dicts into validated entries; collect every problem."""
     problems: list[str] = []
     used_ids: set[str] = set()
     entries: list[VocabularyEntry] = []
 
-    for index, row in enumerate(rows):
-        payload = dict(row)
+    for index, raw_row in enumerate(rows):
+        if not isinstance(raw_row, dict):
+            problems.append(
+                f"{deck_label}: entry #{index + 1} must be an object "
+                f"(got {type(raw_row).__name__})"
+            )
+            continue
+        payload = dict(raw_row)
         label = payload.pop("_row_label", f"entry #{index + 1}")
         if assign_ids:
             base = slugify(str(payload.get("source", ""))) or "entry"
@@ -118,7 +128,7 @@ def _format_validation_errors(exc: ValidationError) -> str:
 
 
 def _build_deck(
-    meta: dict, rows: list[dict], *, assign_ids: bool, deck_label: str
+    meta: dict, rows: list[object], *, assign_ids: bool, deck_label: str
 ) -> Deck:
     """Validate deck metadata and entries; shared by both file formats."""
     try:
@@ -165,7 +175,7 @@ def _load_json_deck(path: Path) -> Deck:
     if not isinstance(rows, list):
         raise DeckLoadError(f"{label}: 'entries' must be a list")
     return _build_deck(
-        raw, [dict(row) for row in rows if isinstance(row, dict)], assign_ids=False, deck_label=label
+        raw, list(rows), assign_ids=False, deck_label=label
     )
 
 
@@ -245,6 +255,7 @@ def load_decks(data_dir: Path) -> dict[str, Deck]:
         raise DeckLoadError(f"deck directory does not exist: {data_dir}")
 
     decks: dict[str, Deck] = {}
+    deck_files: dict[str, str] = {}
     problems: list[str] = []
     for path in discover_deck_files(data_dir):
         try:
@@ -255,10 +266,11 @@ def load_decks(data_dir: Path) -> dict[str, Deck]:
         if deck.summary.id in decks:
             problems.append(
                 f"{path.name}: duplicate deck id '{deck.summary.id}' "
-                f"(already defined by '{decks[deck.summary.id].summary.id}')"
+                f"(already defined by '{deck_files[deck.summary.id]}')"
             )
             continue
         decks[deck.summary.id] = deck
+        deck_files[deck.summary.id] = path.name
 
     if problems:
         raise DeckLoadError(

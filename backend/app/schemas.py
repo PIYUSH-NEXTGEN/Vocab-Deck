@@ -85,9 +85,19 @@ class DeckSummary(BaseModel):
             raise ValueError("must match ^[a-z0-9][a-z0-9_-]{0,63}$")
         return value
 
-    @field_validator("name", "description")
+    @field_validator("name")
     @classmethod
-    def _validate_text(cls, value: str) -> str:
+    def _validate_name(cls, value: str) -> str:
+        text = normalize_text(value)
+        if not text:
+            raise ValueError("deck name is required")
+        if len(text) > 1000:
+            raise ValueError("must be at most 1000 characters")
+        return text
+
+    @field_validator("description")
+    @classmethod
+    def _validate_description(cls, value: str) -> str:
         text = normalize_text(value)
         if len(text) > 1000:
             raise ValueError("must be at most 1000 characters")

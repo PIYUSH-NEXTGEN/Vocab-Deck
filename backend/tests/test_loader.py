@@ -200,3 +200,40 @@ def test_multiple_problems_reported_together(build_client, deck_payload):
         build_client({"demo.json": json.dumps(payload)})
     assert "duplicate entry id 'same'" in str(excinfo.value)
     assert "entry #3 is invalid" in str(excinfo.value)
+
+
+def test_non_object_json_rows_reported_not_dropped(build_client, deck_payload):
+    payload = deck_payload(
+        entries=[
+            {"id": "hello", "source": "hello", "target": "hola"},
+            "just-a-string",
+            42,
+            {"id": "bye", "source": "bye", "target": "adios"},
+        ]
+    )
+    with pytest.raises(DeckLoadError) as excinfo:
+        build_client({"demo.json": json.dumps(payload)})
+    message = str(excinfo.value)
+    assert "entry #2 must be an object (got str)" in message
+    assert "entry #3 must be an object (got int)" in message
+
+
+def test_long_csv_source_gets_truncated_slug(build_client):
+    meta = {"id": "d", "name": "D", "source_language": "en", "target_language": "en"}
+    long_source = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch extra words here"
+    csv_text = f"source,target\n{long_source}, Town\n"
+    client = build_client({"d.csv": csv_text, "d.meta.json": json.dumps(meta)})
+    page = client.get("/api/decks/d/entries").json()
+    assert len(page["entries"][0]["id"]) <= 64
+
+
+def test_slugify_truncates_long_slugs():
+    assert len(slugify("x" * 200)) <= 60
+
+
+def test_duplicate_deck_id_names_both_files(build_client, deck_payload):
+    with pytest.raises(DeckLoadError, match="already defined by 'a.json'"):
+        build_client({
+            "a.json": json.dumps(deck_payload()),
+            "b.json": json.dumps(deck_payload()),
+        })

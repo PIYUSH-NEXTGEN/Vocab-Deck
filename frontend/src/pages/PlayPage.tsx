@@ -26,7 +26,10 @@ import { LanguageChip } from "../components/Chip";
 export function PlayPage() {
   const { modeId, deckId } = useParams();
   const [searchParams] = useSearchParams();
-  const decodedDeckId = deckId ? decodeURIComponent(deckId) : "";
+  // Deck ids are URL-safe (`[a-z0-9_-]`), and react-router already decodes
+  // route params: decoding again would throw on malformed input (no error
+  // boundary) and corrupt ids containing a literal `%`.
+  const decodedDeckId = deckId ?? "";
   const mode = modeId && isGameModeId(modeId) ? modeId : null;
   const [reversed, setReversed] = useState(searchParams.get("dir") === "reverse");
   const { epoch } = useSession();

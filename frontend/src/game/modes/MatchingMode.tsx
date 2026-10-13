@@ -306,22 +306,13 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   See results
                 </Button>
               ) : (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setBatchAction(null)}
-                    style={{ minWidth: "130px", padding: "var(--space-3) var(--space-5)" }}
-                  >
-                    Stay here
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleBatchAction}
-                    style={{ minWidth: "150px", padding: "var(--space-3) var(--space-5)" }}
-                  >
-                    Next batch
-                  </Button>
-                </>
+                <Button
+                  variant="primary"
+                  onClick={handleBatchAction}
+                  style={{ minWidth: "150px", padding: "var(--space-3) var(--space-5)" }}
+                >
+                  Next batch
+                </Button>
               )}
             </div>
           </Panel>

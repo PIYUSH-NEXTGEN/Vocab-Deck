@@ -46,7 +46,7 @@ test.describe("language pairs", () => {
     await page.getByRole("textbox").fill("zzz");
     await page.getByRole("button", { name: "Check answer" }).click();
     const feedback = page.getByRole("status");
-    await expect(feedback).toContainText(/accepted:/);
+    await expect(feedback).toContainText(/accepted:/i);
     const accepted = (await feedback.textContent()) ?? "";
     // One of the accepted answers is the Japanese target itself.
     expect(accepted).toMatch(/[\u3040-\u30ff\u4e00-\u9faf]/);

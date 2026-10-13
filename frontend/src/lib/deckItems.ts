@@ -69,12 +69,21 @@ export function reverseDeck(deck: PlayableDeck): PlayableDeck {
 /** Swap every occurrence of two language names inside a text. */
 function swapLanguageNames(text: string, nameA: string, nameB: string): string {
   if (!text || !nameA || !nameB || nameA === nameB) return text;
-  const placeholder = "\u0000";
-  return text
-    .split(nameB)
-    .join(placeholder)
-    .split(nameA)
-    .join(nameB)
-    .split(placeholder)
-    .join(nameA);
+  // Single left-to-right pass over literal matches: no placeholder, so a
+  // description containing any control character (possible via JSON import)
+  // can never corrupt the swap, and names with regex syntax stay literal.
+  const names = [nameA, nameB].sort((a, b) => b.length - a.length);
+  let result = "";
+  let i = 0;
+  while (i < text.length) {
+    const match = names.find((name) => text.startsWith(name, i));
+    if (!match) {
+      result += text[i];
+      i += 1;
+    } else {
+      result += match === nameA ? nameB : nameA;
+      i += match.length;
+    }
+  }
+  return result;
 }

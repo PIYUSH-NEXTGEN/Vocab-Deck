@@ -495,3 +495,50 @@ describe("session state", () => {
     expect(localStorage.length).toBe(0);
   });
 });
+
+/* ---------------- Matching batches (regression) ---------------- */
+
+describe("MatchingMode batches", () => {
+  const BIG_DECK: PlayableDeck = {
+    id: "big",
+    name: "Big deck",
+    description: "",
+    sourceLanguage: "en",
+    targetLanguage: "fr",
+    entryCount: 8,
+    origin: "builtin",
+    entries: Array.from({ length: 8 }, (_, i) => ({
+      id: `e${i}`,
+      source: `source-${i}`,
+      target: `target-${i}`,
+      alternatives: [],
+      tags: [],
+    })),
+  };
+
+  function completeVisibleBatch() {
+    const lists = screen.getAllByRole("list");
+    const left = lists[0];
+    const right = lists[1];
+    for (const source of within(left).getAllByRole("button")) {
+      if (source.hasAttribute("disabled")) continue;
+      const targetText = BIG_DECK.entries.find((e) => e.source === source.textContent!)!.target;
+      const target = within(right)
+        .getAllByRole("button")
+        .find((b) => b.textContent === targetText)!;
+      fireEvent.click(source);
+      fireEvent.click(target);
+    }
+  }
+
+  test("completing a batch always offers a way forward (no dead end)", () => {
+    renderMode(<MatchingMode deck={BIG_DECK} seed={1} />);
+    completeVisibleBatch();
+    // The batch is complete: the user must be able to advance.
+    expect(screen.queryByRole("button", { name: /stay here/i })).not.toBeInTheDocument();
+    const next = screen.getByRole("button", { name: /next batch/i });
+    fireEvent.click(next);
+    completeVisibleBatch();
+    expect(screen.getByRole("heading", { name: /all pairs matched/i })).toBeInTheDocument();
+  });
+});

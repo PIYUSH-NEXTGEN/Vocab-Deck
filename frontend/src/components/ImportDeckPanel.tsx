@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Button } from "./Button";
 import { Panel } from "./Panel";
-import { PREVIEW_ENTRY_LIMIT, previewImport, confirmImport } from "../decks/importPipeline";
+import {
+  MAX_IMPORT_CHARS,
+  PREVIEW_ENTRY_LIMIT,
+  previewImport,
+  confirmImport,
+} from "../decks/importPipeline";
 import { languagePairLabel } from "../lang/display";
 import type { CustomDeckDocument } from "../api/types";
 
@@ -57,6 +62,15 @@ export function ImportDeckPanel({
     const file = event.target.files?.[0];
     event.target.value = ""; // allow re-selecting the same file
     if (!file) return;
+    if (file.size > MAX_IMPORT_CHARS) {
+      setFileName(file.name);
+      setText("");
+      setPreview(null);
+      setErrors([
+        `"${file.name}" is too large (${(file.size / 1_000_000).toFixed(1)} MB). Split it into smaller decks of under 2 MB.`,
+      ]);
+      return;
+    }
     try {
       runParse(await readFileText(file), file.name);
     } catch {

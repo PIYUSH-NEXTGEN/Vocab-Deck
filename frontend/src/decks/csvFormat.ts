@@ -22,6 +22,7 @@
  */
 
 import type { CustomDeckDocument } from "../api/types";
+import { MAX_IMPORT_ENTRIES } from "./validate";
 
 export const CSV_HEADER = ["source", "target", "alternatives", "tags"] as const;
 const COMMENT_PREFIX = "#";
@@ -166,20 +167,32 @@ export function parseDeckCsv(text: string): CsvParseResult {
 
   const header = rows[headerIndex].map((value) => value.trim());
   const entries: unknown[] = [];
-  const seen: string[] = [];
+  const seen = new Set<string>();
   for (let i = headerIndex + 1; i < rows.length; i += 1) {
     const raw = rows[i];
     if (raw.length === 1 && raw[0].trim() === "") continue; // blank padding line
+    if (raw.length > header.length) {
+      errors.push(
+        `Row ${i + 1} has more columns than the header (got ${raw.length}, expected ${header.length}).`,
+      );
+      continue;
+    }
     const record = rowToObject(header, raw);
     const source = record.source ?? "";
     const target = record.target ?? "";
     if (!source && !target) continue;
+    if (entries.length >= MAX_IMPORT_ENTRIES) {
+      errors.push(
+        `CSV has more than ${MAX_IMPORT_ENTRIES} entries. Split the file and import it in parts.`,
+      );
+      break;
+    }
     const key = `${source.toLocaleLowerCase()}\u0000${target.toLocaleLowerCase()}`;
-    if (seen.includes(key)) {
+    if (seen.has(key)) {
       errors.push(`Duplicate source/translation pair "${source}" -> "${target}" (row ${i + 1}).`);
       continue;
     }
-    seen.push(key);
+    seen.add(key);
     entries.push({
       source,
       target,

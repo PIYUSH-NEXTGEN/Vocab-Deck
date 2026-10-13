@@ -110,7 +110,16 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
     }
     throw new ApiError("unexpected_response", foreignServerMessage(response.status, body), response.status);
   }
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError(
+      "unexpected_response",
+      `The server at ${baseUrl()} did not return a vocabulary API response (unreadable body). ` +
+        "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL.",
+      response.status,
+    );
+  }
 }
 
 /* ---------- DTO -> domain mapping ---------- */

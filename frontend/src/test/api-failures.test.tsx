@@ -70,3 +70,16 @@ test("empty deck list shows the empty state", async () => {
     await screen.findByRole("heading", { name: /no decks for this language pair/i }),
   ).toBeInTheDocument();
 });
+
+test("a 200 response with an unreadable body shows a retryable error state", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+    Promise.resolve(
+      new Response("<html>not json</html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    ),
+  );
+  renderApp(<App />);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/did not return a vocabulary api response/i);
+});

@@ -15,10 +15,21 @@ export type ImportResult =
   | { ok: true; deck: CustomDeckDocument }
   | { ok: false; errors: string[] };
 
+/** Upper bound for pasted/uploaded deck text (~2 MB): fail fast, never parse unbounded input. */
+export const MAX_IMPORT_CHARS = 2_000_000;
+
 /** Parse a file's text into a raw deck document (no validation yet). */
 function parseDeckText(text: string): { ok: true; raw: unknown } | { ok: false; errors: string[] } {
   if (text.trim().length === 0) {
     return { ok: false, errors: ["The file is empty."] };
+  }
+  if (text.length > MAX_IMPORT_CHARS) {
+    return {
+      ok: false,
+      errors: [
+        `The file is too large (${(text.length / 1_000_000).toFixed(1)} MB). Split it into smaller decks of under 2 MB.`,
+      ],
+    };
   }
   if (text.trimStart().startsWith("{")) {
     try {

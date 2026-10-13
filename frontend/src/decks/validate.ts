@@ -11,6 +11,14 @@
 import type { CustomDeckDocument, PlayableDeck, VocabularyEntry } from "../api/types";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+const MAX_ID_LENGTH = 64;
+const CUSTOM_ID_PREFIX = "custom-";
+/** Upper bound for imported/edited decks: keeps parsing O(n) and storage small. */
+export const MAX_IMPORT_ENTRIES = 5000;
+/** Deck names share the 120-character cap enforced by the rename flow. */
+export const MAX_DECK_NAME_LENGTH = 120;
+/** Descriptions share the backend's 1000-character cap. */
+export const MAX_DECK_DESCRIPTION_LENGTH = 1000;
 
 export type ValidationResult =
   | { ok: true; deck: CustomDeckDocument }
@@ -40,11 +48,12 @@ function slugify(text: string): string {
 /** Deterministic custom-deck id from a deck name, namespaced against built-ins. */
 export function suggestCustomDeckId(name: string): string {
   const base = slugify(name);
-  const id = `custom-${base || "deck"}`;
+  // `custom-` is 7 chars; keep the total within the 64-char id limit.
+  const id = `${CUSTOM_ID_PREFIX}${(base || "deck").slice(0, MAX_ID_LENGTH - CUSTOM_ID_PREFIX.length)}`;
   return id;
 }
 
-function validateEntry(raw: unknown, index: number): VocabularyEntry {
+function validateEntry(raw: unknown, index: number): { entry: VocabularyEntry; derivedId: boolean } {
   const position = index + 1;
   if (typeof raw !== "object" || raw === null) {
     throw new Error(`Entry ${position} must be an object.`);
@@ -58,9 +67,11 @@ function validateEntry(raw: unknown, index: number): VocabularyEntry {
   if (!isNonEmptyString(target)) {
     throw new Error(`Entry ${position}: translation is required.`);
   }
-  const id = isNonEmptyString(entry.id)
-    ? normalizeText(entry.id)
-    : slugify(normalizeText(source)) || `entry-${position}`;
+  const rawId = entry.id;
+  const derivedId = !isNonEmptyString(rawId);
+  const id = derivedId
+    ? slugify(normalizeText(source)) || `entry-${position}`
+    : normalizeText(rawId);
   if (!ID_PATTERN.test(id)) {
     throw new Error(
       `Entry ${position}: id "${id}" must match ^[a-z0-9][a-z0-9_-]{0,63}$ (lowercase ASCII).`,
@@ -82,7 +93,10 @@ function validateEntry(raw: unknown, index: number): VocabularyEntry {
         return normalizeText(value);
       })
     : [];
-  return { id, source: normalizeText(source), target: normalizeText(target), alternatives, tags };
+  return {
+    entry: { id, source: normalizeText(source), target: normalizeText(target), alternatives, tags },
+    derivedId,
+  };
 }
 
 export function validateCustomDeck(
@@ -104,6 +118,9 @@ export function validateCustomDeck(
   >;
   const name = isNonEmptyString(deck.name) ? normalizeText(deck.name) : "";
   if (!name) errors.push("Deck name is required.");
+  else if (name.length > MAX_DECK_NAME_LENGTH) {
+    errors.push(`Deck name must be at most ${MAX_DECK_NAME_LENGTH} characters.`);
+  }
   // Ids are optional in files: when absent they are derived from the deck name.
   const id = isNonEmptyString(deck.id)
     ? normalizeText(deck.id)
@@ -116,6 +133,10 @@ export function validateCustomDeck(
     errors.push(
       `A deck with id "${id}" already exists in this browser. Import with a different name, or delete the existing deck first.`,
     );
+  }
+  const description = isNonEmptyString(deck.description) ? normalizeText(deck.description) : "";
+  if (description.length > MAX_DECK_DESCRIPTION_LENGTH) {
+    errors.push(`Deck description must be at most ${MAX_DECK_DESCRIPTION_LENGTH} characters.`);
   }
   const sourceLanguage = isNonEmptyString(deck.sourceLanguage) ? normalizeText(deck.sourceLanguage) : "";
   const targetLanguage = isNonEmptyString(deck.targetLanguage) ? normalizeText(deck.targetLanguage) : "";
@@ -133,13 +154,32 @@ export function validateCustomDeck(
     errors.push("Imported document needs an \"entries\" array.");
   } else if (root.entries.length === 0) {
     errors.push("Deck needs at least one entry.");
+  } else if (root.entries.length > MAX_IMPORT_ENTRIES) {
+    errors.push(
+      `Deck has ${root.entries.length} entries; at most ${MAX_IMPORT_ENTRIES} are supported. Split the file and import it in parts.`,
+    );
   } else {
     root.entries.forEach((raw, index) => {
       try {
-        const entry = validateEntry(raw, index);
+        const { entry, derivedId } = validateEntry(raw, index);
         if (seenIds.has(entry.id)) {
-          errors.push(`Duplicate entry id "${entry.id}".`);
-          return;
+          if (derivedId) {
+            // Ids derived from the source text (CSV imports, new editor rows)
+            // get `-2`/`-3` suffixes, mirroring the backend's CSV deck loader.
+            // The stem is shortened so the suffixed id still fits the pattern.
+            const stem = entry.id;
+            let suffix = 2;
+            let candidate = "";
+            do {
+              const tail = `-${suffix}`;
+              candidate = `${stem.slice(0, MAX_ID_LENGTH - tail.length)}${tail}`;
+              suffix += 1;
+            } while (seenIds.has(candidate));
+            entry.id = candidate;
+          } else {
+            errors.push(`Duplicate entry id "${entry.id}".`);
+            return;
+          }
         }
         const pairKey = `${entry.source.toLocaleLowerCase()}\u0000${entry.target.toLocaleLowerCase()}`;
         if (seenPairs.has(pairKey)) {
@@ -164,7 +204,7 @@ export function validateCustomDeck(
       deck: {
         id,
         name,
-        description: isNonEmptyString(deck.description) ? normalizeText(deck.description) : "",
+        description,
         sourceLanguage,
         targetLanguage,
         entryCount: entries.length,
