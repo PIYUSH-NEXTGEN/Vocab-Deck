@@ -1129,6 +1129,15 @@ select:focus {
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
+/* About-page anchor targets clear the sticky header, like #decks/#modes */
+#about-what,
+#about-how-to-use,
+#about-modes,
+#about-decks,
+#about-details {
+  scroll-margin-top: calc(var(--nav-height) + var(--space-5));
+}
+
 .about-toc a:hover,
 .about-toc a:focus {
   color: var(--accent-deep);

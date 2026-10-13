@@ -49,6 +49,27 @@ export function PlayPage() {
     { enabled: customDeck === null && mode !== null && decodedDeckId.length > 0 },
   );
 
+  // The resolved deck must keep a stable `entries` reference across re-renders:
+  // every answer records session stats, which re-renders this page, and the
+  // game modes rebuild their round whenever `deck.entries` changes identity.
+  // Without memoization, `reverseDeck`/`toPlayableDeck` below allocate a fresh
+  // array on each render, so submitting an answer reshuffles the current
+  // question (and marks it wrong) whenever study direction is reversed.
+  const resolvedDeck: PlayableDeck | null = useMemo(
+    () =>
+      customDeck !== null
+        ? toPlayableDeck(customDeck)
+        : builtIn.state.status === "success"
+          ? builtIn.state.data
+          : null,
+    [customDeck, builtIn.state],
+  );
+  // Study direction is a session-level toggle on top of the resolved deck.
+  const deck = useMemo(
+    () => (resolvedDeck && reversed ? reverseDeck(resolvedDeck) : resolvedDeck),
+    [resolvedDeck, reversed],
+  );
+
   if (mode === null) {
     return (
       <div className="shell page">
@@ -64,15 +85,6 @@ export function PlayPage() {
       </div>
     );
   }
-
-  const resolvedDeck: PlayableDeck | null =
-    customDeck !== null
-      ? toPlayableDeck(customDeck)
-      : builtIn.state.status === "success"
-        ? builtIn.state.data
-        : null;
-  // Study direction is a session-level toggle on top of the resolved deck.
-  const deck = resolvedDeck && reversed ? reverseDeck(resolvedDeck) : resolvedDeck;
 
   if (!decodedDeckId) {
     return (
