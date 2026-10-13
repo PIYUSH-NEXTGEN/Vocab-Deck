@@ -29,9 +29,23 @@ function safeParse(raw: string | null): CustomDeckDocument[] {
   }
 }
 
+/** Parsed-document cache; `raw` is the exact stored string it was built from. */
+let cache: { raw: string | null | undefined; docs: CustomDeckDocument[] } = {
+  raw: undefined,
+  docs: [],
+};
+
 function readAll(): CustomDeckDocument[] {
+  // Cache the parsed documents keyed by the exact stored string: listing and
+  // fetching decks happens on every render, while the stored bytes only
+  // change on writes (or cross-tab storage events, which alter the string and
+  // thus miss the cache). Callers never mutate the returned documents.
   try {
-    return safeParse(localStorage.getItem(STORAGE_KEY));
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === cache.raw) return cache.docs;
+    const docs = safeParse(raw);
+    cache = { raw, docs };
+    return docs;
   } catch {
     return [];
   }
@@ -39,7 +53,9 @@ function readAll(): CustomDeckDocument[] {
 
 function writeAll(decks: CustomDeckDocument[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+    const raw = JSON.stringify(decks);
+    localStorage.setItem(STORAGE_KEY, raw);
+    cache = { raw, docs: decks };
   } catch {
     // Storage full or unavailable: keep the in-memory session working anyway.
   }

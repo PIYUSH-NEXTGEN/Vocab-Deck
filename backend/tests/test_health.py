@@ -50,3 +50,14 @@ def test_cors_preflight_allows_get_only(real_client):
     )
     assert response.status_code == 200
     assert "GET" in response.headers["access-control-allow-methods"]
+
+
+def test_deck_endpoints_are_cacheable(real_client):
+    for path in ("/api/decks", "/api/decks/en-fr", "/api/decks/en-fr/entries"):
+        response = real_client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "public, max-age=60"
+
+
+def test_health_is_not_cached(real_client):
+    assert "cache-control" not in real_client.get("/api/health").headers

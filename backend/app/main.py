@@ -96,6 +96,11 @@ def create_app(
         """Minimal hardening for JSON API responses (no behavior change)."""
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
+        # Built-in decks are immutable per deployment, so repeat visits (every
+        # page mount refetches) are served from the browser cache for a minute.
+        # Health is excluded: monitoring should always see a live response.
+        if request.url.path.startswith("/api/decks"):
+            response.headers["Cache-Control"] = "public, max-age=60"
         return response
 
     # FastAPI's Annotated+Depends form for the store isn't honored here, so handlers

@@ -41,8 +41,11 @@ export function PlayPage() {
 
   const builtIn = useAsync<PlayableDeck>(
     async (signal) => {
-      const summary = await getDeck(decodedDeckId, signal);
-      const page = await getEntries(decodedDeckId, {}, signal);
+      // Independent requests: one round trip instead of two sequential ones.
+      const [summary, page] = await Promise.all([
+        getDeck(decodedDeckId, signal),
+        getEntries(decodedDeckId, {}, signal),
+      ]);
       return { ...summary, entries: page.entries, origin: "builtin" as const };
     },
     [decodedDeckId, mode !== null],

@@ -45,6 +45,21 @@ export function buildQuizRounds(
   const maxOptions = 4;
   const rounds: QuizRound[] = [];
 
+  // Distinct target strings (exact match, first-seen order) computed once:
+  // rebuilding this pool per question made large decks unusable (O(n^2) work
+  // per question). Filtering by the per-question forbidden set below yields
+  // exactly the same pool contents as the old nested loop.
+  const distinctTargets: { text: string; key: string }[] = [];
+  const seenTargets = new Set<string>();
+  for (const entry of entries) {
+    if (seenTargets.has(entry.target)) continue;
+    seenTargets.add(entry.target);
+    distinctTargets.push({
+      text: entry.target,
+      key: entry.target.normalize("NFC").toLocaleLowerCase(),
+    });
+  }
+
   for (const entry of shuffle(entries, rng)) {
     const answer = entry.target;
     const forbidden = new Set(
@@ -52,12 +67,9 @@ export function buildQuizRounds(
     );
 
     const distractorPool: string[] = [];
-    for (const other of entries) {
-      if (other.id === entry.id) continue;
-      const candidate = other.target;
-      const key = candidate.normalize("NFC").toLocaleLowerCase();
-      if (forbidden.has(key) || distractorPool.includes(candidate)) continue;
-      distractorPool.push(candidate);
+    for (const { text, key } of distinctTargets) {
+      if (forbidden.has(key)) continue;
+      distractorPool.push(text);
     }
 
     const distractors = shuffle(distractorPool, rng).slice(0, maxOptions - 1);
