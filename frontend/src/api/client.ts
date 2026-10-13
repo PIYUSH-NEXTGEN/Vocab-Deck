@@ -155,36 +155,27 @@ export function toDeckSummary(dto: DeckSummaryDto): DeckSummary {
  * otherwise, so navigating Home <-> Library pays a full server round trip
  * (including a serverless cold start in deployment) each time. Entries live
  * for DECKS_TTL_MS; only successes are cached, so errors and retries always
- * hit the network. Concurrent mounts share one in-flight request.
+ * hit the network.
+ *
+ * Deliberately NOT sharing in-flight requests: each caller keeps its own
+ * fetch tied to its own abort signal. Sharing one promise across callers
+ * lets one component's unmount abort poison the others with a stale
+ * "Aborted" rejection (StrictMode remounts, fast navigation).
  */
 const DECKS_TTL_MS = 5 * 60_000;
 const cache = new Map<string, { data: unknown; at: number }>();
-const inflight = new Map<string, Promise<unknown>>();
 
 async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < DECKS_TTL_MS) return hit.data as T;
-  const ongoing = inflight.get(key);
-  if (ongoing) return ongoing as Promise<T>;
-  const pending = load().then(
-    (data) => {
-      cache.set(key, { data, at: Date.now() });
-      inflight.delete(key);
-      return data;
-    },
-    (error) => {
-      inflight.delete(key);
-      throw error;
-    },
-  );
-  inflight.set(key, pending);
-  return pending;
+  const data = await load();
+  cache.set(key, { data, at: Date.now() });
+  return data;
 }
 
 /** Clears the endpoint cache (tests; logout-style resets if ever needed). */
 export function clearApiCache(): void {
   cache.clear();
-  inflight.clear();
 }
 
 export async function listDecks(signal?: AbortSignal): Promise<DeckSummary[]> {

@@ -38,11 +38,42 @@ describe("api endpoint cache", () => {
     expect(second).toEqual(first);
   });
 
-  test("concurrent mounts share one in-flight request", async () => {
+  test("concurrent mounts fetch independently (no shared abort state)", async () => {
     const fetchMock = stubJson(deckListPayload());
     const [a, b] = await Promise.all([listDecks(), listDecks()]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(a).toEqual(b);
+  });
+
+  test("an aborted caller does not poison a concurrent caller", async () => {
+    let release!: (value: Response) => void;
+    const gate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((_input, init) => {
+        const signal = (init as RequestInit | undefined)?.signal as AbortSignal | undefined;
+        return gate.then((response) => {
+          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+          return response;
+        });
+      });
+    // Second caller attaches while the first request is still in flight,
+    // then the first caller unmounts (StrictMode remount, fast navigation).
+    const firstController = new AbortController();
+    const doomed = listDecks(firstController.signal);
+    const survivor = listDecks();
+    firstController.abort();
+    release(
+      new Response(JSON.stringify(deckListPayload()), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(doomed).rejects.toThrow();
+    await expect(survivor).resolves.toMatchObject([{ id: "en-fr" }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("entries are cached per deck and params", async () => {
