@@ -1,21 +1,8 @@
 # Vocab Deck
 
-> A vocabulary practice app: choose a deck (any language pair), then train with flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was replaced by a React frontend and a FastAPI vocabulary API.
-
-<!-- TODO: replace # with the deployed frontend URL -->
-[Live Demo](#) · [Report a Bug](../../issues)
-
----
-
-
-
-## Overview
 
 **Vocab Deck** is a vocabulary practice application that helps language learners memorize words through four interactive study modes. It provides a modern React frontend backed by a FastAPI vocabulary service. Built-in decks cover English→French, English→German, and English→Japanese; users can also create, edit, import, and export custom decks entirely in the browser.
 
-Intended for: language learners, students, and anyone building vocabulary in a new language.
-
----
 
 ## Features
 
