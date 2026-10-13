@@ -76,6 +76,14 @@ class Deck:
     entries: tuple[VocabularyEntry, ...]
 
 
+def _format_validation_errors(exc: ValidationError) -> str:
+    """One-line summary of every pydantic failure (shared by rows and metadata)."""
+    return "; ".join(
+        f"{'.'.join(str(part) for part in error['loc']) or 'entry'}: {error['msg']}"
+        for error in exc.errors()
+    )
+
+
 def _parse_rows(
     rows: list[object], *, assign_ids: bool, deck_label: str
 ) -> tuple[list[VocabularyEntry], list[str]]:
@@ -108,23 +116,13 @@ def _parse_rows(
         try:
             entry = VocabularyEntry.model_validate(payload)
         except ValidationError as exc:
-            details = "; ".join(
-                f"{'.'.join(str(part) for part in error['loc']) or 'entry'}: {error['msg']}"
-                for error in exc.errors()
-            )
+            details = _format_validation_errors(exc)
             problems.append(f"{deck_label}: {label} is invalid ({details})")
             continue
         used_ids.add(entry.id)
         entries.append(entry)
 
     return entries, problems
-
-
-def _format_validation_errors(exc: ValidationError) -> str:
-    return "; ".join(
-        f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-        for error in exc.errors()
-    )
 
 
 def _build_deck(

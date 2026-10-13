@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { buildFlashcardOrder } from "../engine";
+import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { rise, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
@@ -8,6 +9,7 @@ import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
+import { RoundSizeField } from "../../components/RoundSizeField";
 
 export const AUTO_REVEAL_MS = 3000;
 /** Most cards a single flashcard round can contain. */
@@ -73,8 +75,8 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
   /** Accept only whole numbers inside the deck's range; otherwise revert. */
   const commitRoundSize = useCallback(
     (raw: string) => {
-      const parsed = Number(raw.trim());
-      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxRound) {
+      const parsed = parseBoundedCount(raw, maxRound);
+      if (parsed === null) {
         setSizeInput(String(Math.min(roundSize, maxRound)));
         return;
       }
@@ -137,33 +139,14 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
         <span className="label">
           Card {index + 1} of {order.length}
         </span>
-        <span className="row round-size">
-          <label className="label" htmlFor="flashcard-round-size">
-            Cards this round
-          </label>
-          <input
-            id="flashcard-round-size"
-            className="round-size-input"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={maxRound}
-            step={1}
-            value={sizeInput}
-            aria-describedby="flashcard-round-size-hint"
-            onChange={(event) => setSizeInput(event.target.value)}
-            onBlur={(event) => commitRoundSize(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitRoundSize((event.target as HTMLInputElement).value);
-              }
-            }}
-          />
-          <span className="faint" id="flashcard-round-size-hint">
-            1–{maxRound}
-          </span>
-        </span>
+        <RoundSizeField
+          id="flashcard-round-size"
+          label="Cards this round"
+          max={maxRound}
+          value={sizeInput}
+          onChange={setSizeInput}
+          onCommit={commitRoundSize}
+        />
         <ProgressBar value={index} max={order.length} label={`${index} reviewed`} />
       </div>
 

@@ -24,10 +24,6 @@ export function languageName(code: string): string {
   }
 }
 
-export function languageCodeLabel(code: string): string {
-  return code.toUpperCase();
-}
-
 /** e.g. "French → English"; arrow direction is source → target. */
 export function languagePairLabel(source: string, target: string): string {
   if (!source || !target) return "";

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useEffect, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { MAX_QUIZ_ROUNDS, buildQuizRounds } from "../engine";
+import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
@@ -9,6 +10,7 @@ import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
+import { RoundSizeField } from "../../components/RoundSizeField";
 
 /**
  * Multiple choice: one correct translation among distinct options built by the
@@ -42,9 +44,9 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   /** Accept only whole numbers inside 1..maxQuestions; otherwise revert. */
   const commitQuestionCount = useCallback(
     (raw: string) => {
-      const parsed = Number(raw.trim());
+      const parsed = parseBoundedCount(raw, maxQuestions);
       const current = Math.min(questionCount, maxQuestions);
-      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxQuestions) {
+      if (parsed === null) {
         setCountInput(String(current));
         return;
       }
@@ -133,33 +135,14 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
         <span className="label">
           Question {index + 1} of {rounds.length}
         </span>
-        <span className="row round-size">
-          <label className="label" htmlFor="quiz-question-count">
-            Questions
-          </label>
-          <input
-            id="quiz-question-count"
-            className="round-size-input"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={maxQuestions}
-            step={1}
-            value={countInput}
-            aria-describedby="quiz-question-count-hint"
-            onChange={(event) => setCountInput(event.target.value)}
-            onBlur={(event) => commitQuestionCount(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitQuestionCount((event.target as HTMLInputElement).value);
-              }
-            }}
-          />
-          <span className="faint" id="quiz-question-count-hint">
-            1–{maxQuestions}
-          </span>
-        </span>
+        <RoundSizeField
+          id="quiz-question-count"
+          label="Questions"
+          max={maxQuestions}
+          value={countInput}
+          onChange={setCountInput}
+          onCommit={commitQuestionCount}
+        />
         <ProgressBar value={index} max={rounds.length} label={`${index} answered`} />
       </div>
 

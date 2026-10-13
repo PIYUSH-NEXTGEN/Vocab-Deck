@@ -54,6 +54,9 @@ async function readErrorBody(response: Response): Promise<ErrorBody | null> {
   }
 }
 
+/** How to point the app at a running backend (shared by every setup error). */
+const BACKEND_HINT = "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL.";
+
 /**
  * Explain a response that did not come from this service (foreign server on the
  * same port, a static file server returning HTML, a wrong VITE_API_URL, ...).
@@ -63,12 +66,12 @@ function foreignServerMessage(status: number, body: ErrorBody | null): string {
     return (
       `The server at ${baseUrl()} is not the Vocab Deck API ` +
       `(it replied ${status}: ${JSON.stringify(body.detail)}). ` +
-      "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL."
+      BACKEND_HINT
     );
   }
   return (
     `The server at ${baseUrl()} did not return a vocabulary API response (status ${status}). ` +
-    "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL."
+    BACKEND_HINT
   );
 }
 
@@ -116,7 +119,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
     throw new ApiError(
       "unexpected_response",
       `The server at ${baseUrl()} did not return a vocabulary API response (unreadable body). ` +
-        "Start the backend (cd backend && uvicorn app.main:app --port 8000) or set VITE_API_URL.",
+        BACKEND_HINT,
       response.status,
     );
   }

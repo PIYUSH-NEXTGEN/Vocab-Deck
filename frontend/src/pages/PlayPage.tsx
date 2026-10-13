@@ -29,27 +29,27 @@ export function PlayPage() {
   // Deck ids are URL-safe (`[a-z0-9_-]`), and react-router already decodes
   // route params: decoding again would throw on malformed input (no error
   // boundary) and corrupt ids containing a literal `%`.
-  const decodedDeckId = deckId ?? "";
+  const deckIdParam = deckId ?? "";
   const mode = modeId && isGameModeId(modeId) ? modeId : null;
   const [reversed, setReversed] = useState(searchParams.get("dir") === "reverse");
   const { epoch } = useSession();
 
   const customDeck = useMemo(
-    () => (decodedDeckId && mode ? getCustomDeck(decodedDeckId) : null),
-    [decodedDeckId, mode],
+    () => (deckIdParam && mode ? getCustomDeck(deckIdParam) : null),
+    [deckIdParam, mode],
   );
 
   const builtIn = useAsync<PlayableDeck>(
     async (signal) => {
       // Independent requests: one round trip instead of two sequential ones.
       const [summary, page] = await Promise.all([
-        getDeck(decodedDeckId, signal),
-        getEntries(decodedDeckId, {}, signal),
+        getDeck(deckIdParam, signal),
+        getEntries(deckIdParam, {}, signal),
       ]);
       return { ...summary, entries: page.entries, origin: "builtin" as const };
     },
-    [decodedDeckId, mode !== null],
-    { enabled: customDeck === null && mode !== null && decodedDeckId.length > 0 },
+    [deckIdParam, mode !== null],
+    { enabled: customDeck === null && mode !== null && deckIdParam.length > 0 },
   );
 
   // The resolved deck must keep a stable `entries` reference across re-renders:
@@ -89,7 +89,7 @@ export function PlayPage() {
     );
   }
 
-  if (!decodedDeckId) {
+  if (!deckIdParam) {
     return (
       <div className="shell page">
         <EmptyState title="No deck selected" action={<Link className="link-button" to="/">Choose a deck</Link>} />
@@ -158,7 +158,7 @@ export function PlayPage() {
         {GAME_MODES.map((item) => (
           <Link
             key={item.id}
-            to={playHref(item.id, decodedDeckId)}
+            to={playHref(item.id, deckIdParam)}
             className={`mode-link${item.id === mode ? " is-active" : ""}`}
             aria-current={item.id === mode ? "page" : undefined}
           >

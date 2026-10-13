@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayableDeck } from "../../api/types";
 import { buildFlashcardOrder } from "../engine";
+import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { acceptedAnswers, matchesTranslation } from "../text";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
@@ -9,6 +10,7 @@ import { languageName } from "../../lang/display";
 import { Button } from "../../components/Button";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
+import { RoundSizeField } from "../../components/RoundSizeField";
 
 type Result = "correct" | "incorrect" | null;
 
@@ -74,8 +76,8 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
   const commitRoundSize = useCallback(
     (raw: string) => {
-      const parsed = Number(raw.trim());
-      if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxRound) {
+      const parsed = parseBoundedCount(raw, maxRound);
+      if (parsed === null) {
         setSizeInput(String(Math.min(roundSize, maxRound)));
         return;
       }
@@ -131,33 +133,14 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
         <span className="label">
           Entry {index + 1} of {order.length}
         </span>
-        <span className="row round-size">
-          <label className="label" htmlFor="typing-round-size">
-            Entries this round
-          </label>
-          <input
-            id="typing-round-size"
-            className="round-size-input"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={maxRound}
-            step={1}
-            value={sizeInput}
-            aria-describedby="typing-round-size-hint"
-            onChange={(event) => setSizeInput(event.target.value)}
-            onBlur={(event) => commitRoundSize(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitRoundSize((event.target as HTMLInputElement).value);
-              }
-            }}
-          />
-          <span className="faint" id="typing-round-size-hint">
-            1–{maxRound}
-          </span>
-        </span>
+        <RoundSizeField
+          id="typing-round-size"
+          label="Entries this round"
+          max={maxRound}
+          value={sizeInput}
+          onChange={setSizeInput}
+          onCommit={commitRoundSize}
+        />
         <ProgressBar value={index} max={order.length} label={`${index} typed`} />
       </div>
 
