@@ -1,21 +1,8 @@
 # Vocab Deck
 
-> A vocabulary practice app: choose a deck (any language pair), then train with flashcards, a multiple-choice quiz, typing, or matching. The original Tkinter app was replaced by a React frontend and a FastAPI vocabulary API.
-
-<!-- TODO: replace # with the deployed frontend URL -->
-[Live Demo](#) · [Report a Bug](../../issues)
-
----
-
-
-
-## Overview
 
 **Vocab Deck** is a vocabulary practice application that helps language learners memorize words through four interactive study modes. It provides a modern React frontend backed by a FastAPI vocabulary service. Built-in decks cover English→French, English→German, and English→Japanese; users can also create, edit, import, and export custom decks entirely in the browser.
 
-Intended for: language learners, students, and anyone building vocabulary in a new language.
-
----
 
 ## Features
 
@@ -349,30 +336,7 @@ npm run dev
 
 Open http://localhost:5173 and select a deck, choose a mode, start studying.
 
----
 
-## Deployment
-
-Deploy as two Vercel projects from the same repo, with Root Directory set to `frontend` and `backend` respectively.
-
-**Frontend (Vite static site):**
-- Build command: `npm run build`
-- Output directory: `dist`
-- Environment variable (build-time): `VITE_API_URL=https://<backend>.vercel.app/api`
-- Redeploy the frontend after changing this value.
-
-**Backend (FastAPI serverless):**
-- Entry point: `backend/app/main.py` (exported as `app`)
-- Environment variable: `CORS_ORIGINS=https://<frontend>.vercel.app`
-
-**Verification:**
-- GET `/api/health` on the backend → expects `{"status":"ok","deck_count":3}`
-- Load the frontend and refresh a deep link such as `/library`
-
-**Troubleshooting:**
-- Network errors loading decks are almost always a `CORS_ORIGINS` mismatch. The value needs `https://`, the exact host, and no trailing slash.
-
----
 
 ## Usage
 
@@ -398,16 +362,8 @@ Deploy as two Vercel projects from the same repo, with Root Directory set to `fr
 - **Matching**: drag to pair source↔target; ambiguous translations dropped with notice
 - **Session bar**: shows correct/incorrect/streak per mode; **Restart session** resets
 
-### Keyboard Shortcuts (Play page)
-| Key | Action |
-|---|---|
-| `Space` / `Enter` | Flip (Flashcards) / Submit (Typing, Quiz) |
-| `←` / `→` | Previous / Next card |
-| `1` / `2` | Correct / Incorrect (Flashcards self-assess) |
-| `R` | Restart session |
 
 ---
-
 ## Configuration Reference
 
 | Variable | Required | Default | Description |
