@@ -1,6 +1,8 @@
 /**
- * Theme state: light/dark, persisted in localStorage, falling back to the
- * operating system preference until the user makes an explicit choice.
+ * Theme state: light/dark, persisted in localStorage. The default is light;
+ * the toggle switches explicitly and the choice is remembered. The operating
+ * system preference is deliberately NOT followed so first-time visitors
+ * always land on the light theme.
  * An inline script in index.html applies the stored choice before first paint,
  * so there is no flash of the wrong theme.
  */
@@ -18,12 +20,7 @@ import {
 export type ThemeChoice = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "vocabdeck.theme";
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-function systemTheme(): ThemeChoice {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "light";
-  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
-}
+export const DEFAULT_THEME: ThemeChoice = "light";
 
 function storedTheme(): ThemeChoice | null {
   try {
@@ -44,7 +41,7 @@ export interface ThemeApi {
 const ThemeContext = createContext<ThemeApi | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<ThemeChoice>(() => storedTheme() ?? systemTheme());
+  const [theme, setTheme] = useState<ThemeChoice>(() => storedTheme() ?? DEFAULT_THEME);
 
   // Reflect the choice on <html> and remember it.
   useEffect(() => {
@@ -55,17 +52,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Storage unavailable: the theme still applies for this session.
     }
   }, [theme]);
-
-  // Follow the OS only while the user has not chosen explicitly.
-  useEffect(() => {
-    if (storedTheme() !== null) return;
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia(DARK_QUERY);
-    const onChange = (event: MediaQueryListEvent) =>
-      setTheme(event.matches ? "dark" : "light");
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
 
   const toggle = useCallback(
     () => setTheme((current) => (current === "dark" ? "light" : "dark")),

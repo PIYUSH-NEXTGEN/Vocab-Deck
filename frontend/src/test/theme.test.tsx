@@ -1,5 +1,5 @@
 /**
- * Theme system: toggle, persistence, OS-preference fallback and the
+ * Theme system: explicit light default, toggle, persistence, and the
  * no-flash bootstrap contract.
  */
 
@@ -59,11 +59,11 @@ describe("theme provider", () => {
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
   });
 
-  test("follows the OS preference on a first visit", () => {
+  test("defaults to light when nothing is stored, even if the OS prefers dark", () => {
     stubSystemScheme(true);
     renderWithTheme(<Probe />);
-    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getByTestId("theme")).toHaveTextContent("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
   });
 
   test("restores the stored preference over the OS preference", () => {
@@ -119,9 +119,9 @@ describe("theme in the shell", () => {
   });
 });
 
-test("the no-flash bootstrap script is present in index.html", () => {
+test("the no-flash bootstrap script defaults to light in index.html", () => {
   const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
   expect(html).toMatch(/localStorage.getItem\("vocabdeck.theme"\)/);
-  expect(html).toMatch(/prefers-color-scheme: dark/);
   expect(html).toMatch(/document.documentElement.dataset.theme/);
+  expect(html).not.toMatch(/prefers-color-scheme/);
 });

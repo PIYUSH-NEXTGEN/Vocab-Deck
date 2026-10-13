@@ -13,17 +13,13 @@
       content="Study vocabulary decks with flashcards, quizzes, typing and matching exercises."
     />
     <script>
-      // Apply the saved (or system) theme before paint to avoid a flash.
+      // Apply the saved theme before paint to avoid a flash. First-time
+      // visitors default to light; only an explicit toggle choice is stored.
       (function () {
         try {
           var stored = window.localStorage.getItem("vocabdeck.theme");
-          var theme =
-            stored === "light" || stored === "dark"
-              ? stored
-              : window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.theme =
+            stored === "light" || stored === "dark" ? stored : "light";
         } catch (error) {
           document.documentElement.dataset.theme = "light";
         }
