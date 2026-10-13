@@ -1,7 +1,7 @@
 {
   "id": "en-fr",
   "name": "English to French",
-  "description": "25 everyday English words with French translations.",
+  "description": "50 everyday English words with French translations.",
   "source_language": "en",
   "target_language": "fr",
   "entries": [
@@ -208,6 +208,189 @@
         "noun",
         "verb"
       ]
+    },
+    {
+      "id": "time",
+      "source": "time",
+      "target": "temps",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "food",
+      "source": "food",
+      "target": "nourriture",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "morning",
+      "source": "morning",
+      "target": "matin",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "evening",
+      "source": "evening",
+      "target": "soir",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "week",
+      "source": "week",
+      "target": "semaine",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "month",
+      "source": "month",
+      "target": "mois",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "year",
+      "source": "year",
+      "target": "année",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "man",
+      "source": "man",
+      "target": "homme",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "woman",
+      "source": "woman",
+      "target": "femme",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "child",
+      "source": "child",
+      "target": "enfant",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "family",
+      "source": "family",
+      "target": "famille",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "money",
+      "source": "money",
+      "target": "argent",
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "happy",
+      "source": "happy",
+      "target": "heureux",
+      "tags": []
+    },
+    {
+      "id": "big",
+      "source": "big",
+      "target": "grand",
+      "tags": []
+    },
+    {
+      "id": "small",
+      "source": "small",
+      "target": "petit",
+      "tags": []
+    },
+    {
+      "id": "hot",
+      "source": "hot",
+      "target": "chaud",
+      "tags": []
+    },
+    {
+      "id": "cold",
+      "source": "cold",
+      "target": "froid",
+      "tags": []
+    },
+    {
+      "id": "new",
+      "source": "new",
+      "target": "nouveau",
+      "tags": []
+    },
+    {
+      "id": "good",
+      "source": "good",
+      "target": "bon",
+      "alternatives": [
+        "bonne"
+      ],
+      "tags": []
+    },
+    {
+      "id": "beautiful",
+      "source": "beautiful",
+      "target": "beau",
+      "alternatives": [
+        "belle"
+      ],
+      "tags": []
+    },
+    {
+      "id": "red",
+      "source": "red",
+      "target": "rouge",
+      "tags": []
+    },
+    {
+      "id": "green",
+      "source": "green",
+      "target": "vert",
+      "tags": []
+    },
+    {
+      "id": "blue",
+      "source": "blue",
+      "target": "bleu",
+      "tags": []
+    },
+    {
+      "id": "white",
+      "source": "white",
+      "target": "blanc",
+      "alternatives": [
+        "blanche"
+      ],
+      "tags": []
+    },
+    {
+      "id": "black",
+      "source": "black",
+      "target": "noir",
+      "tags": []
     }
   ]
 }

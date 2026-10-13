@@ -17,12 +17,12 @@ test.describe("health and deck loading", () => {
     }
   });
 
-  test("each built-in deck exposes 25 entries through the API", async ({ request }) => {
+  test("each built-in deck exposes 50 entries through the API", async ({ request }) => {
     for (const id of ["en-de", "en-fr", "en-ja"]) {
       const summary = await (await request.get(`/api/decks/${id}`)).json();
-      expect(summary.entry_count).toBe(25);
+      expect(summary.entry_count).toBe(50);
       const page = await (await request.get(`/api/decks/${id}/entries`)).json();
-      expect(page.total).toBe(25);
+      expect(page.total).toBe(50);
     }
   });
 

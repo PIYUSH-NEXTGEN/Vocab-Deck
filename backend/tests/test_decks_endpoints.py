@@ -22,7 +22,7 @@ def test_deck_list(real_client):
     for deck in body["decks"]:
         assert REQUIRED_SUMMARY_FIELDS <= set(deck)
     by_id = {deck["id"]: deck for deck in body["decks"]}
-    assert by_id["en-fr"]["entry_count"] == 25
+    assert by_id["en-fr"]["entry_count"] == 50
     assert by_id["en-fr"]["source_language"] == "en"
     assert by_id["en-fr"]["target_language"] == "fr"
     assert by_id["en-de"]["source_language"] == "en"
@@ -35,7 +35,7 @@ def test_deck_detail(real_client):
     body = response.json()
     assert REQUIRED_SUMMARY_FIELDS <= set(body)
     assert body["id"] == "en-fr"
-    assert body["entry_count"] == 25
+    assert body["entry_count"] == 50
 
 
 def test_deck_detail_unknown(real_client):
@@ -48,10 +48,10 @@ def test_entries_unpaginated(real_client):
     response = real_client.get("/api/decks/en-fr/entries")
     assert response.status_code == 200
     body = response.json()
-    assert body["total"] == 25
+    assert body["total"] == 50
     assert body["limit"] is None
     assert body["offset"] == 0
-    assert len(body["entries"]) == 25
+    assert len(body["entries"]) == 50
     assert body["entries"][0] == {
         "id": "water",
         "source": "water",
@@ -65,7 +65,7 @@ def test_entries_paginated(real_client):
     response = real_client.get("/api/decks/en-ja/entries?limit=3&offset=2")
     assert response.status_code == 200
     body = response.json()
-    assert body["total"] == 25
+    assert body["total"] == 50
     assert body["limit"] == 3
     assert body["offset"] == 2
     assert [e["id"] for e in body["entries"]] == ["book", "house", "cat"]
@@ -75,7 +75,7 @@ def test_entries_offset_clamped(real_client):
     response = real_client.get("/api/decks/en-ja/entries?offset=99")
     assert response.status_code == 200
     body = response.json()
-    assert body["offset"] == 25
+    assert body["offset"] == 50
     assert body["entries"] == []
 
 

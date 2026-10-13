@@ -7,7 +7,7 @@
 ## Features
 
 - **Four study modes**: Flashcards (with 3D flip), Multiple-choice Quiz, Typing (accent-insensitive option), Matching
-- **Three built-in language pairs**: English→French, English→German, English→Japanese (25 entries each, directly comparable)
+- **Three built-in language pairs**: English→French, English→German, English→Japanese (50 entries each, directly comparable)
 - **Custom decks**: Create, edit, import (JSON/CSV), export; validated client-side with same rules as built-in decks
 - **Session tracking**: Per-mode stats (correct/incorrect, streaks, time) preserved across mode switches; reset on demand
 - **Theme support**: Light/dark with `prefers-color-scheme` detection and `localStorage` persistence, no flash on load
@@ -234,9 +234,9 @@ Vocab-Deck/
 │   │   ├── loader.py            # Deck discovery + validation (JSON, CSV+meta)
 │   │   ├── errors.py            # Domain errors → HTTP error JSON
 │   │   └── data/decks/          # Version-controlled built-in decks
-│   │       ├── en-de.json       # English → German (25 entries)
-│   │       ├── en-fr.json       # English → French (25 entries)
-│   │       └── en-ja.json       # English → Japanese (25 entries)
+│   │       ├── en-de.json       # English → German (50 entries)
+│   │       ├── en-fr.json       # English → French (50 entries)
+│   │       └── en-ja.json       # English → Japanese (50 entries)
 │   ├── tests/                   # pytest + FastAPI TestClient (83 tests)
 │   └── pyproject.toml
 ├── frontend/                    # React + TypeScript + Vite SPA
@@ -396,7 +396,7 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 
 | Check | Result |
 |---|---|
-| Backend tests | **83 passed** |
+| Backend tests | **84 passed** |
 | Frontend unit/component tests | **183 passed** (19 files) |
 | TypeScript type-check | clean |
 | ESLint | clean |

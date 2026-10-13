@@ -1,6 +1,6 @@
 """Guards for the built-in decks shipped in app/data/decks.
 
-These decks are the product's seed content: three language pairs, 25 entries
+These decks are the product's seed content: three language pairs, 50 entries
 each, stable ids and full Unicode (umlauts, eszett, ligatures, kanji/kana).
 """
 
@@ -25,16 +25,16 @@ def test_exactly_the_three_builtin_decks_are_served(real_client):
     assert {deck["id"] for deck in body["decks"]} == set(EXPECTED_DECKS)
 
 
-def test_each_deck_has_25_entries_and_the_right_language_pair(real_client):
+def test_each_deck_has_50_entries_and_the_right_language_pair(real_client):
     for deck_id, (source, target) in EXPECTED_DECKS.items():
         summary = real_client.get(f"/api/decks/{deck_id}").json()
         assert summary["source_language"] == source
         assert summary["target_language"] == target
-        assert summary["entry_count"] == 25
+        assert summary["entry_count"] == 50
 
         page = real_client.get(f"/api/decks/{deck_id}/entries").json()
-        assert page["total"] == 25
-        assert [entry["id"] for entry in page["entries"]] == EXPECTED_SOURCES
+        assert page["total"] == 50
+        assert [entry["id"] for entry in page["entries"]][:25] == EXPECTED_SOURCES
 
 
 def test_translations_are_unique_within_each_deck(real_client):
@@ -68,3 +68,25 @@ def test_alternatives_and_tags_are_present(real_client):
     ja = real_client.get("/api/decks/en-ja/entries").json()["entries"]
     love = next(e for e in ja if e["id"] == "love")
     assert love["tags"] == ["noun", "verb"]
+
+
+def test_second_half_entries_are_correct(real_client):
+    fr = real_client.get("/api/decks/en-fr/entries").json()["entries"]
+    by_id = {e["id"]: e for e in fr}
+    assert by_id["beautiful"]["target"] == "beau"
+    assert by_id["beautiful"]["alternatives"] == ["belle"]
+    assert by_id["year"]["target"] == "année"
+    assert by_id["money"]["target"] == "argent"
+
+    de = real_client.get("/api/decks/en-de/entries").json()["entries"]
+    by_id = {e["id"]: e for e in de}
+    assert by_id["white"]["target"] == "weiß"
+    assert by_id["big"]["target"] == "groß"
+    assert by_id["family"]["target"] == "Familie"
+
+    ja = real_client.get("/api/decks/en-ja/entries").json()["entries"]
+    by_id = {e["id"]: e for e in ja}
+    assert by_id["family"]["target"] == "家族"
+    assert by_id["family"]["alternatives"] == ["かぞく"]
+    assert by_id["fish"]["target"] == "魚"
+    assert by_id["white"]["target"] == "白い"

@@ -1,7 +1,7 @@
 {
   "id": "en-ja",
   "name": "English to Japanese",
-  "description": "25 everyday English words with Japanese translations.",
+  "description": "50 everyday English words with Japanese translations.",
   "source_language": "en",
   "target_language": "ja",
   "entries": [
@@ -268,6 +268,255 @@
         "noun",
         "verb"
       ]
+    },
+    {
+      "id": "time",
+      "source": "time",
+      "target": "時間",
+      "alternatives": [
+        "じかん"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "food",
+      "source": "food",
+      "target": "食べ物",
+      "alternatives": [
+        "たべもの"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "morning",
+      "source": "morning",
+      "target": "朝",
+      "alternatives": [
+        "あさ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "evening",
+      "source": "evening",
+      "target": "晩",
+      "alternatives": [
+        "ばん"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "week",
+      "source": "week",
+      "target": "週",
+      "alternatives": [
+        "しゅう"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "fish",
+      "source": "fish",
+      "target": "魚",
+      "alternatives": [
+        "さかな"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "year",
+      "source": "year",
+      "target": "年",
+      "alternatives": [
+        "ねん"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "man",
+      "source": "man",
+      "target": "男",
+      "alternatives": [
+        "おとこ"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "woman",
+      "source": "woman",
+      "target": "女",
+      "alternatives": [
+        "おんな"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "child",
+      "source": "child",
+      "target": "子供",
+      "alternatives": [
+        "こども"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "family",
+      "source": "family",
+      "target": "家族",
+      "alternatives": [
+        "かぞく"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "money",
+      "source": "money",
+      "target": "お金",
+      "alternatives": [
+        "おかね"
+      ],
+      "tags": [
+        "noun"
+      ]
+    },
+    {
+      "id": "happy",
+      "source": "happy",
+      "target": "嬉しい",
+      "alternatives": [
+        "うれしい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "big",
+      "source": "big",
+      "target": "大きい",
+      "alternatives": [
+        "おおきい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "small",
+      "source": "small",
+      "target": "小さい",
+      "alternatives": [
+        "ちいさい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "hot",
+      "source": "hot",
+      "target": "熱い",
+      "alternatives": [
+        "あつい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "cold",
+      "source": "cold",
+      "target": "冷たい",
+      "alternatives": [
+        "つめたい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "new",
+      "source": "new",
+      "target": "新しい",
+      "alternatives": [
+        "あたらしい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "good",
+      "source": "good",
+      "target": "良い",
+      "alternatives": [
+        "よい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "beautiful",
+      "source": "beautiful",
+      "target": "美しい",
+      "alternatives": [
+        "うつくしい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "red",
+      "source": "red",
+      "target": "赤い",
+      "alternatives": [
+        "あかい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "green",
+      "source": "green",
+      "target": "緑",
+      "alternatives": [
+        "みどり"
+      ],
+      "tags": []
+    },
+    {
+      "id": "blue",
+      "source": "blue",
+      "target": "青い",
+      "alternatives": [
+        "あおい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "white",
+      "source": "white",
+      "target": "白い",
+      "alternatives": [
+        "しろい"
+      ],
+      "tags": []
+    },
+    {
+      "id": "black",
+      "source": "black",
+      "target": "黒い",
+      "alternatives": [
+        "くろい"
+      ],
+      "tags": []
     }
   ]
 }
