@@ -237,7 +237,7 @@ Vocab-Deck/
 │   │       ├── en-de.json       # English → German (25 entries)
 │   │       ├── en-fr.json       # English → French (25 entries)
 │   │       └── en-ja.json       # English → Japanese (25 entries)
-│   ├── tests/                   # pytest + FastAPI TestClient (76 tests)
+│   ├── tests/                   # pytest + FastAPI TestClient (83 tests)
 │   └── pyproject.toml
 ├── frontend/                    # React + TypeScript + Vite SPA
 │   ├── e2e/                     # Playwright E2E tests (25 tests)
@@ -379,11 +379,11 @@ Open http://localhost:5173 and select a deck, choose a mode, start studying.
 
 | Command | Scope |
 |---|---|
-| `cd backend && python -m pytest` | Backend API, schemas, loader, built-in decks (76 tests) |
+| `cd backend && python -m pytest` | Backend API, schemas, loader, built-in decks (83 tests) |
 | `cd frontend && npm run typecheck` | TypeScript `tsc --noEmit` |
 | `cd frontend && npm run lint` | ESLint |
-| `cd frontend && npm test` | Vitest unit/component (146 tests) |
-| `cd frontend && npm run test:e2e` | Playwright E2E (25 tests: all modes, 3 lang pairs, custom decks, import/export, responsive, theme) |
+| `cd frontend && npm test` | Vitest unit/component (183 tests) |
+| `cd frontend && npm run test:e2e` | Playwright E2E (27 tests: all modes, 3 lang pairs, custom decks, import/export, responsive, theme, caching, about-page anchors) |
 | `cd frontend && npm run build` | Production build (typecheck + vite) |
 
 The Playwright config starts the backend on port 8010 and a preview build on 4173 automatically. Install browsers once: `npx playwright install chromium`.
@@ -396,12 +396,12 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 
 | Check | Result |
 |---|---|
-| Backend tests | **76 passed** |
-| Frontend unit/component tests | **146 passed** (15 files) |
+| Backend tests | **83 passed** |
+| Frontend unit/component tests | **183 passed** (19 files) |
 | TypeScript type-check | clean |
 | ESLint | clean |
-| Production build | **succeeded** (27.6 kB CSS, 363 kB JS / 116 kB gzip) |
-| Playwright E2E | **25 passed** |
+| Production build | **succeeded** (29.8 kB CSS, 366 kB JS / 116 kB gzip) |
+| Playwright E2E | **27 passed** |
 
 - Backend loads ~3 decks (75 entries) at startup, under 50 ms cold start
 - Frontend bundle: 363 kB JS (116 kB gzip), 27.6 kB CSS

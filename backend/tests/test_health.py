@@ -61,3 +61,21 @@ def test_deck_endpoints_are_cacheable(real_client):
 
 def test_health_is_not_cached(real_client):
     assert "cache-control" not in real_client.get("/api/health").headers
+
+
+def test_cors_preflight_denies_post(real_client):
+    response = real_client.options(
+        "/api/health",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 400
+    assert "POST" not in response.headers.get("access-control-allow-methods", "")
+
+
+def test_openapi_schema_generates(real_client):
+    response = real_client.get("/openapi.json")
+    assert response.status_code == 200
+    assert "/api/decks" in response.json()["paths"]

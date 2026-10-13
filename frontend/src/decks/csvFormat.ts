@@ -134,13 +134,26 @@ export function parseDeckCsv(text: string): CsvParseResult {
     const row = rows[i].map((value) => value.trim());
     if (row.length === 0 || (row.length === 1 && row[0] === "")) continue;
     if (row[0].startsWith(COMMENT_PREFIX)) {
-      const match = row[0].slice(COMMENT_PREFIX.length).trim().match(/^([A-Za-z]+):\s?(.*)$/);
-      if (match) {
-        const key = match[1];
-        if (key === "deck") meta.name = match[2];
-        else if (key === "description") meta.description = match[2];
-        else if (key === "sourceLanguage") meta.sourceLanguage = match[2];
-        else if (key === "targetLanguage") meta.targetLanguage = match[2];
+      // Comment lines pass through the comma-splitting CSV parser, so a value
+      // containing commas (e.g. "# description: Everyday, words") arrives as
+      // several fields. Rejoin from the raw (untrimmed) fields so the exact
+      // spacing survives: strip only the "#" marker and the single optional
+      // space after the "key:" prefix.
+      const rawFields = rows[i];
+      const colon = rawFields[0].indexOf(":");
+      const key = colon === -1 ? "" : rawFields[0].slice(0, colon).replace(/^#\s*/, "");
+      if (/^[A-Za-z]+$/.test(key)) {
+        let value = rawFields[0].slice(colon + 1);
+        if (value.startsWith(" ") || value.startsWith("\t")) value = value.slice(1);
+        // Rejoin with commas: splitting consumed the delimiters and join
+        // does not restore them, so the separator before each extra field is
+        // added back explicitly (but never when there are no extra fields).
+        const rest = rawFields.slice(1);
+        value = (rest.length > 0 ? `${value},${rest.join(",")}` : value).trim();
+        if (key === "deck") meta.name = value;
+        else if (key === "description") meta.description = value;
+        else if (key === "sourceLanguage") meta.sourceLanguage = value;
+        else if (key === "targetLanguage") meta.targetLanguage = value;
       }
       continue;
     }
