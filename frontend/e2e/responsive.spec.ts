@@ -12,17 +12,18 @@ test.describe("responsive behaviour", () => {
     await expect(page.getByRole("button", { name: /^Menu$/ })).toHaveCount(0);
   });
 
-  test("mobile collapses navigation behind the menu toggle", async ({ page }) => {
+  test("mobile shows the full navbar instead of a menu toggle", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoHome(page);
 
-    const toggle = page.getByRole("button", { name: "Menu" });
-    await expect(toggle).toBeVisible();
-    await expect(page.getByRole("link", { name: "Deck library" })).toBeHidden();
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Deck library" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "About" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Menu$/ })).toHaveCount(0);
 
-    await toggle.click();
-    await expect(page.getByRole("link", { name: "Deck library" })).toBeVisible();
-    await page.getByRole("link", { name: "Deck library" }).click();
+    await nav.getByRole("link", { name: "Deck library" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Your decks" })).toBeVisible();
   });
 

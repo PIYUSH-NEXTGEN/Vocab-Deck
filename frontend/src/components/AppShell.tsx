@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useEffect, useRef } from "react";
 import { AppFooter } from "./AppFooter";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -34,14 +33,6 @@ const NAV_ITEMS = [
 ];
 
 export function AppShell() {
-  const isCompact = useMediaQuery("(max-width: 640px)");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
-
   const navLinks = NAV_ITEMS.map((item) => (
     <NavLink
       key={item.to}
@@ -58,35 +49,10 @@ export function AppShell() {
       <ScrollToTop />
       <header className="app-header">
         <div className="shell app-header-inner">
-          {isCompact ? (
-            <>
-              <button
-                type="button"
-                className="nav-toggle"
-                aria-expanded={menuOpen}
-                aria-controls="primary-navigation"
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                {menuOpen ? "Close" : "Menu"}
-              </button>
-              <nav
-                id="primary-navigation"
-                className={`app-nav app-nav-drawer${menuOpen ? " is-open" : ""}`}
-                aria-label="Primary"
-                hidden={!menuOpen}
-              >
-                {navLinks}
-                <span className="drawer-row">
-                  <ThemeToggle />
-                </span>
-              </nav>
-            </>
-          ) : (
-            <nav className="app-nav app-nav-floating" aria-label="Primary">
-              {navLinks}
-              <ThemeToggle />
-            </nav>
-          )}
+          <nav className="app-nav app-nav-floating" aria-label="Primary">
+            {navLinks}
+            <ThemeToggle />
+          </nav>
         </div>
       </header>
 

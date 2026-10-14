@@ -45,7 +45,7 @@
 .app-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .nav-link {
@@ -615,10 +615,46 @@ select:focus {
 @media (max-width: 640px) {
   .app-header-inner {
     position: relative;
+    justify-content: center;
+    padding-inline: var(--space-2);
   }
 
+  /* Keep the full navbar visible on mobile in ONE line: de-float the pill,
+     stretch it full-width with airy spacing. Internal scroll is only a
+     safety fallback so the page itself never overflows. */
   .app-nav-floating {
+    position: static;
+    transform: none;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    width: 100%;
+    margin-inline: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .app-nav-floating::-webkit-scrollbar {
     display: none;
+  }
+
+  .app-nav-floating .nav-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+  }
+
+  .app-nav-floating .theme-toggle {
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-left: 0;
   }
 
   .entry-row {
@@ -640,6 +676,20 @@ select:focus {
 
   .panel {
     box-shadow: var(--shadow-1);
+  }
+}
+
+/* Very narrow phones: keep the same airy rhythm, just slightly smaller —
+   still strictly one line (scrolls internally if needed). */
+@media (max-width: 380px) {
+  .app-nav-floating {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .app-nav-floating .nav-link {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
   }
 }
 
