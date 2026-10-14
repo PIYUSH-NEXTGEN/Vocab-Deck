@@ -4,6 +4,7 @@ import { buildFlashcardOrder } from "../engine";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { acceptedAnswers, matchesTranslation } from "../text";
+import { fullTranslation, nativeScript } from "../translationDisplay";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
@@ -14,8 +15,8 @@ import { RoundSizeField } from "../../components/RoundSizeField";
 
 type Result = "correct" | "incorrect" | null;
 
-/** Max entries a single typing round can contain. */
-const MAX_ROUND = 25;
+/** Max entries a single typing round can contain (full 50-entry deck). */
+const MAX_ROUND = 50;
 
 /**
  * Typing: type the translation. Comparison is Unicode-aware (NFC), case- and
@@ -161,6 +162,11 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
       >
         <label className="stack-tight">
           <span className="label">Your {languageName(deck.targetLanguage)} translation</span>
+          {nativeScript(entry).length > 0 ? (
+            <span className="faint">
+              Type the romaji in Latin letters — e.g. {entry.target} for {nativeScript(entry)[0]}.
+            </span>
+          ) : null}
           <input
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -196,7 +202,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
             <div className="stack" role="status" ref={feedbackRef}>
               <p className={result === "correct" ? "notice" : "notice notice-error"}>
                 {result === "correct"
-                  ? "Correct."
+                  ? `Correct. ${fullTranslation(entry)}`
                   : `Not quite. Accepted: ${acceptedAnswers(entry).join(", ")}`}
               </p>
               <div className="row">

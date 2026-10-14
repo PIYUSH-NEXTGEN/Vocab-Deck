@@ -2,6 +2,8 @@
 
 These decks are the product's seed content: three language pairs, 50 entries
 each, stable ids and full Unicode (umlauts, eszett, ligatures, kanji/kana).
+The Japanese deck uses romaji (Latin-letter) targets so answers can be typed
+on an English keyboard; kanji/kana forms are kept as accepted alternatives.
 """
 
 from __future__ import annotations
@@ -55,8 +57,8 @@ def test_unicode_round_trips_in_every_deck(real_client):
 
     ja = real_client.get("/api/decks/en-ja/entries").json()["entries"]
     water = next(e for e in ja if e["id"] == "water")
-    assert water["target"] == "水"
-    assert water["alternatives"] == ["みず"]  # kana readings are accepted answers
+    assert water["target"] == "mizu"  # romaji primary so it is typable
+    assert water["alternatives"] == ["水", "みず"]  # kanji/kana still accepted
 
 
 def test_alternatives_and_tags_are_present(real_client):
@@ -86,7 +88,7 @@ def test_second_half_entries_are_correct(real_client):
 
     ja = real_client.get("/api/decks/en-ja/entries").json()["entries"]
     by_id = {e["id"]: e for e in ja}
-    assert by_id["family"]["target"] == "家族"
-    assert by_id["family"]["alternatives"] == ["かぞく"]
-    assert by_id["fish"]["target"] == "魚"
-    assert by_id["white"]["target"] == "白い"
+    assert by_id["family"]["target"] == "kazoku"
+    assert by_id["family"]["alternatives"] == ["家族", "かぞく"]
+    assert by_id["fish"]["target"] == "sakana"
+    assert by_id["white"]["target"] == "shiroi"

@@ -108,7 +108,7 @@ describe("buildQuizRounds", () => {
   test("respects the round cap", () => {
     const big = Array.from({ length: 30 }, (_, i) => entry(`e${i}`, `s${i}`, `t${i}`));
     expect(buildQuizRounds(big, createRng(1), 3)).toHaveLength(3);
-    expect(MAX_QUIZ_ROUNDS).toBe(20);
+    expect(MAX_QUIZ_ROUNDS).toBe(50);
   });
 });
 
@@ -138,7 +138,7 @@ describe("buildMatchBoard", () => {
   test("respects the pair cap", () => {
     const board = buildMatchBoard(DECK, createRng(9), 2);
     expect(board.pairs).toHaveLength(2);
-    expect(MAX_MATCH_PAIRS).toBe(12);
+    expect(MAX_MATCH_PAIRS).toBe(50);
   });
 
   test("a single-entry deck yields a one-pair board", () => {

@@ -5,6 +5,7 @@ import { useSessionSeed } from "../useSessionSeed";
 import { pop, pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
+import { nativeScript } from "../translationDisplay";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Panel } from "../../components/Panel";
@@ -44,7 +45,15 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
   const batchActionRef = useRef<HTMLDivElement | null>(null);
 
   const totalBatches = Math.ceil(board.pairs.length / PAIRS_PER_BATCH);
-  const batchStart = currentBatch * PAIRS_PER_BATCH;
+  // Entry lookup so the Japanese script can be shown under each romaji target.
+  const scriptById = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const e of deck.entries) {
+      const script = nativeScript(e);
+      if (script.length > 0) map.set(e.id, script);
+    }
+    return map;
+  }, [deck.entries]);  const batchStart = currentBatch * PAIRS_PER_BATCH;
   const batchEnd = Math.min(batchStart + PAIRS_PER_BATCH, board.pairs.length);
   const batchPairs = board.pairs.slice(batchStart, batchEnd);
   const batchPairIds = new Set(batchPairs.map((p) => p.pairId));
@@ -253,6 +262,11 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
                   <span className="lang-text" lang={deck.targetLanguage}>
                     {pair.target}
                   </span>
+                  {scriptById.get(pair.pairId) ? (
+                    <span className="match-script lang-text" lang="ja">
+                      {scriptById.get(pair.pairId)!.join(" · ")}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}

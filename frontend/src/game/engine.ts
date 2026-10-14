@@ -14,8 +14,8 @@
 import type { VocabularyEntry } from "../api/types";
 import { createRng, shuffle, type Rng } from "./rng";
 
-export const MAX_QUIZ_ROUNDS = 20;
-export const MAX_MATCH_PAIRS = 12;
+export const MAX_QUIZ_ROUNDS = 50;
+export const MAX_MATCH_PAIRS = 50;
 
 /* ---------- Flashcards ---------- */
 

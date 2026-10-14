@@ -6,6 +6,7 @@ import { useSessionSeed } from "../useSessionSeed";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
+import { fullTranslation, nativeScript } from "../translationDisplay";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Panel } from "../../components/Panel";
@@ -40,6 +41,17 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
 
   // Derived before the early returns so both effects below stay unconditional.
   const activeRound = rounds.length > 0 ? rounds[Math.min(index, rounds.length - 1)] : null;
+
+  // Map each option string back to its entry so the Japanese script
+  // (kanji/kana) can be shown next to the typable romaji answer.
+  const optionScript = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const e of deck.entries) {
+      const script = nativeScript(e);
+      if (script.length > 0 && !map.has(e.target)) map.set(e.target, script);
+    }
+    return map;
+  }, [deck.entries]);
 
   /** Accept only whole numbers inside 1..maxQuestions; otherwise revert. */
   const commitQuestionCount = useCallback(
@@ -176,9 +188,14 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
                 disabled={submitted}
                 onClick={() => setSelected(option)}
               >
-                <span className="lang-text" lang={deck.targetLanguage}>
+                <span className="option-text lang-text" lang={deck.targetLanguage}>
                   {option}
                 </span>
+                {optionScript.get(option) ? (
+                  <span className="option-script lang-text" lang="ja">
+                    {optionScript.get(option)!.join(" · ")}
+                  </span>
+                ) : null}
               </button>
             </li>
           );
@@ -190,8 +207,8 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
           <div className="stack" role="status" ref={feedbackRef}>
             <p className={selected === round.answer ? "notice" : "notice notice-error"}>
               {selected === round.answer
-                ? "Correct."
-                : `Not quite. "${round.answer}" is the translation.`}
+                ? `Correct. ${fullTranslation(round.entry)}`
+                : `Not quite. "${fullTranslation(round.entry)}" is the translation.`}
             </p>
             <div className="row">
               <Button variant="primary" onClick={next}>

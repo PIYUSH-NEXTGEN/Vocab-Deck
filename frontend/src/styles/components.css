@@ -772,6 +772,30 @@ select:focus {
   margin-top: var(--space-2);
 }
 
+/* Japanese deck: original script shown under the typable romaji answer. */
+.flashcard-native {
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.option-text {
+  display: block;
+}
+
+.option-script,
+.match-script {
+  display: block;
+  font-size: 0.9em;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+.match-script {
+  margin-top: 0.15rem;
+}
+
 .summary {
   gap: var(--space-3);
 }
@@ -1604,6 +1628,35 @@ select:focus {
 .round-size-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* Highlight the adjustable question count so first-time visitors notice it. */
+.round-size-highlight {
+  border: 2px dashed var(--accent-deep);
+  border-radius: var(--radius-s);
+  background: var(--accent-soft);
+  padding: var(--space-1) var(--space-2);
+  animation: round-size-glow 1.6s ease-in-out 2;
+}
+
+.round-size-tip {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  white-space: nowrap;
+}
+
+@keyframes round-size-glow {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: var(--shadow-2);
+  }
 }
 
 /* --- Theme toggle --- */

@@ -6,14 +6,15 @@ import { useSessionSeed } from "../useSessionSeed";
 import { rise, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
 import { languageName } from "../../lang/display";
+import { nativeScript } from "../translationDisplay";
 import { Button } from "../../components/Button";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
 import { RoundSizeField } from "../../components/RoundSizeField";
 
 export const AUTO_REVEAL_MS = 3000;
-/** Most cards a single flashcard round can contain. */
-export const MAX_ROUND = 25;
+/** Most cards a single flashcard round can contain (full 50-entry deck). */
+export const MAX_ROUND = 50;
 
 /**
  * Flashcards: show the source word, reveal the translation (automatically or on
@@ -164,6 +165,11 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
             <p className="flashcard-word flashcard-translation lang-text" lang={deck.targetLanguage}>
               {entry.target}
             </p>
+            {nativeScript(entry).length > 0 ? (
+              <p className="flashcard-native lang-text" lang="ja">
+                {nativeScript(entry).join(" · ")}
+              </p>
+            ) : null}
             {entry.alternatives.length > 0 ? (
               <p className="faint">Also accepted: {entry.alternatives.join(", ")}</p>
             ) : null}
@@ -172,7 +178,9 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
         {/* Screen-reader announcement; the visual faces are decorative here. */}
         <p className="sr-only" role="status">
           {revealed
-            ? `Translation of ${entry.source}: ${entry.target}.`
+            ? `Translation of ${entry.source}: ${entry.target}${
+                nativeScript(entry).length > 0 ? ` (${nativeScript(entry).join(", ")})` : ""
+              }.`
             : `Card showing ${entry.source}. Translation hidden.`}
         </p>
       </Panel>

@@ -114,7 +114,7 @@ test.describe("session lifecycle", () => {
     await expect(page.getByLabel("Session statistics")).toContainText(
       /no session activity|session activity will appear here/i,
     );
-    await expect(page.getByText("Question 1 of 20")).toBeVisible();
+    await expect(page.getByText("Question 1 of 50")).toBeVisible();
   });
 
   test("progress is never written to browser storage", async ({ page }) => {

@@ -35,7 +35,7 @@ test.describe("health and deck loading", () => {
 });
 
 test.describe("language pairs", () => {
-  test("the Japanese deck studies kanji with kana alternatives", async ({ page }) => {
+  test("the Japanese deck uses typable romaji with kanji/kana alternatives", async ({ page }) => {
     await gotoHome(page);
     await selectDeck(page, "English to Japanese");
 
@@ -48,7 +48,9 @@ test.describe("language pairs", () => {
     const feedback = page.getByRole("status");
     await expect(feedback).toContainText(/accepted:/i);
     const accepted = (await feedback.textContent()) ?? "";
-    // One of the accepted answers is the Japanese target itself.
+    // The primary answer is romaji (typable on an English keyboard).
+    expect(accepted).toMatch(/[a-z]+/i);
+    // Kanji/kana forms are still listed as accepted alternatives.
     expect(accepted).toMatch(/[\u3040-\u30ff\u4e00-\u9faf]/);
   });
 

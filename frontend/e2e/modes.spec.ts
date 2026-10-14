@@ -7,12 +7,12 @@ test.describe("flashcards", () => {
     await selectDeck(page, "English to French");
     await openMode(page, "Flashcards");
 
-    await expect(page.getByText("Card 1 of 25")).toBeVisible();
+    await expect(page.getByText("Card 1 of 50")).toBeVisible();
     await page.getByRole("button", { name: "Reveal translation" }).click();
     await expect(page.locator(".flashcard-translation")).toBeVisible();
 
     await page.getByRole("button", { name: "Known" }).click();
-    await expect(page.getByText("Card 2 of 25")).toBeVisible();
+    await expect(page.getByText("Card 2 of 50")).toBeVisible();
     await expect(page.getByLabel("Session statistics")).toContainText("1 known / 0 practice");
   });
 
@@ -26,7 +26,7 @@ test.describe("flashcards", () => {
     await count.blur();
     await expect(page.getByText("Card 1 of 4")).toBeVisible();
 
-    await count.fill("26");
+    await count.fill("51");
     await count.blur();
     await expect(count).toHaveValue("4");
   });
@@ -38,7 +38,7 @@ test.describe("quiz", () => {
     await selectDeck(page, "English to French");
     await openMode(page, "Multiple choice");
 
-    await expect(page.getByText("Question 1 of 20")).toBeVisible();
+    await expect(page.getByText("Question 1 of 50")).toBeVisible();
     await page.locator(".option-list .option").first().click();
     await page.getByRole("button", { name: "Submit answer" }).click();
 
@@ -49,7 +49,7 @@ test.describe("quiz", () => {
     // The submit control is gone, so a second submission is impossible.
     await expect(page.getByRole("button", { name: "Submit answer" })).toHaveCount(0);
     await page.getByRole("button", { name: /Next question/ }).click();
-    await expect(page.getByText("Question 2 of 20")).toBeVisible();
+    await expect(page.getByText("Question 2 of 50")).toBeVisible();
   });
 
   test("a wrong answer is marked red and the correct one blue", async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe("matching", () => {
     await openMode(page, "Matching");
 
     // Pairs are presented in batches; work through each batch in turn.
-    for (let guard = 0; guard < 8; guard += 1) {
+    for (let guard = 0; guard < 12; guard += 1) {
       const left = page.locator(".match-column").first().locator(".match-item");
       await expect(left.first()).toBeVisible();
       const pairCount = await left.count();
@@ -144,7 +144,7 @@ test.describe("matching", () => {
     }
 
     await expect(page.getByRole("heading", { name: /all pairs matched/i })).toBeVisible();
-    await expect(page.getByLabel("Session statistics")).toContainText("12 pairs / 12 attempts");
+    await expect(page.getByLabel("Session statistics")).toContainText("50 pairs / 50 attempts");
   });
 
   test("a wrong pair is rejected and can be retried", async ({ page }) => {

@@ -54,7 +54,7 @@ describe("single-entry decks", () => {
     expect(container.querySelector(".typing-prompt .flashcard-word")!.textContent).toBe("hello");
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "bonjour" } });
     fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
-    expect(screen.getByText("Correct.")).toBeInTheDocument();
+    expect(screen.getByText(/^Correct\./)).toBeInTheDocument();
   });
 
   test("matching explains itself with fewer than two pairs", () => {
@@ -76,7 +76,7 @@ describe("large decks", () => {
 
   test("quiz builds valid rounds without inventing vocabulary", () => {
     const rounds = buildQuizRounds(entries, createRng(7));
-    expect(rounds).toHaveLength(20);
+    expect(rounds).toHaveLength(50);
     for (const round of rounds) {
       expect(round.options).toContain(round.answer);
       expect(new Set(round.options).size).toBe(round.options.length);
@@ -86,7 +86,7 @@ describe("large decks", () => {
 
   test("matching builds a full board", () => {
     const board = buildMatchBoard(entries, createRng(7));
-    expect(board.pairs).toHaveLength(12);
+    expect(board.pairs).toHaveLength(50);
     expect(board.excludedCount).toBe(0);
   });
 });

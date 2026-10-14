@@ -136,7 +136,7 @@ describe("FlashcardsMode", () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  test("round size can be chosen from 1 to the deck length (max 25)", async () => {
+  test("round size can be chosen from 1 to the deck length (max 50)", async () => {
     const big: PlayableDeck = {
       ...DECK,
       entryCount: 30,
@@ -151,10 +151,10 @@ describe("FlashcardsMode", () => {
     renderMode(<FlashcardsMode deck={big} seed={1} />);
 
     const input = screen.getByLabelText(/cards this round/i) as HTMLInputElement;
-    // Capped at 25, defaulting to the cap.
-    expect(input.value).toBe("25");
-    expect(input.max).toBe("25");
-    expect(screen.getByText(/card 1 of 25/i)).toBeInTheDocument();
+    // Capped at 50, defaulting to the deck length when smaller.
+    expect(input.value).toBe("30");
+    expect(input.max).toBe("30");
+    expect(screen.getByText(/card 1 of 30/i)).toBeInTheDocument();
 
     // A valid number inside the range starts a new round.
     fireEvent.change(input, { target: { value: "3" } });
@@ -163,7 +163,7 @@ describe("FlashcardsMode", () => {
     expect(screen.getByText(/card 1 of 3/i)).toBeInTheDocument();
 
     // Out-of-range values revert to the previous size instead of breaking.
-    fireEvent.change(input, { target: { value: "26" } });
+    fireEvent.change(input, { target: { value: "51" } });
     fireEvent.blur(input);
     expect(input.value).toBe("3");
 
@@ -210,7 +210,7 @@ describe("QuizMode", () => {
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
 
     expect(sessionText()).toContain("1/1");
-    expect(screen.getByText(/^correct\.$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^correct\./i)).toBeInTheDocument();
     // Options are locked after submission.
     for (const option of round.options) {
       expect(screen.getByRole("button", { name: option })).toBeDisabled();
@@ -260,9 +260,9 @@ describe("QuizMode", () => {
     renderMode(<QuizMode deck={deck} seed={0} />);
 
     const input = screen.getByLabelText(/^questions$/i) as HTMLInputElement;
-    // Rounds are capped at 20, so the default and max are 20.
-    expect(input.value).toBe("20");
-    expect(input.max).toBe("20");
+    // Rounds are capped at 50, so a 30-entry deck defaults to 30.
+    expect(input.value).toBe("30");
+    expect(input.max).toBe("30");
 
     fireEvent.change(input, { target: { value: "5" } });
     fireEvent.blur(input);
@@ -270,7 +270,7 @@ describe("QuizMode", () => {
     expect(screen.getByText(/question 1 of 5/i)).toBeInTheDocument();
 
     // Out-of-range and non-numeric entries revert to the previous count.
-    for (const bad of ["21", "0", "", "abc"]) {
+    for (const bad of ["31", "0", "", "abc"]) {
       fireEvent.change(input, { target: { value: bad } });
       fireEvent.blur(input);
       expect(input.value).toBe("5");

@@ -21,7 +21,10 @@ export function RoundSizeField({
   onCommit: (value: string) => void;
 }) {
   return (
-    <span className="row round-size">
+    <span
+      className="row round-size round-size-highlight"
+      title={`You can change this — enter any number from 1 to ${max}. Default is the full deck (${max}).`}
+    >
       <label className="label" htmlFor={id}>
         {label}
       </label>
@@ -46,6 +49,9 @@ export function RoundSizeField({
       />
       <span className="faint" id={`${id}-hint`}>
         1–{max}
+      </span>
+      <span className="round-size-tip" aria-hidden="true">
+        ✎ adjustable — try {max} for the full deck
       </span>
     </span>
   );

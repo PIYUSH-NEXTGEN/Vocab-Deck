@@ -61,7 +61,7 @@ describe("PlayPage with reversed study direction", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
 
-    expect(screen.getByText("Correct.")).toBeInTheDocument();
+    expect(screen.getByText(/^Correct\./)).toBeInTheDocument();
     expect(container.querySelector(".quiz-prompt .flashcard-word")!.textContent).toBe(prompt);
   });
 
@@ -74,7 +74,7 @@ describe("PlayPage with reversed study direction", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: answer } });
     fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
 
-    expect(screen.getByText("Correct.")).toBeInTheDocument();
+    expect(screen.getByText(/^Correct\./)).toBeInTheDocument();
     expect(container.querySelector(".typing-prompt .flashcard-word")!.textContent).toBe(prompt);
   });
 
