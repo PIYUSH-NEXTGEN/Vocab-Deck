@@ -1,0 +1,80 @@
+name: New language deck proposal
+description: Propose a new built-in language pair or vocabulary deck.
+title: "[Deck]: "
+labels: ["content", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to **propose** a new built-in deck. Submitting this issue
+        does **not** automatically add a deck to the app — a maintainer must
+        accept the proposal, and the deck content must pass the same validation
+        as existing decks (`backend/app/loader.py`, schemas in
+        `backend/app/schemas.py`, examples in `backend/app/data/decks/`).
+
+        Before proposing, please **search [existing issues](../../issues)** for
+        the same language pair, and never paste secrets or personal data.
+
+  - type: input
+    id: source-language
+    attributes:
+      label: Source language
+      description: Language the learner reads from (built-in decks use ISO codes such as "en").
+      placeholder: "en"
+    validations:
+      required: true
+
+  - type: input
+    id: target-language
+    attributes:
+      label: Target language
+      description: Language the learner practices (built-in decks use ISO codes such as "fr", "de", "ja").
+      placeholder: "es"
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-level
+    attributes:
+      label: Vocabulary scope and intended learner level
+      description: How many entries, which topics (e.g. everyday nouns, verbs), and the target CEFR/JLPT-style level.
+      placeholder: |
+        - ~50 entries, everyday nouns and verbs
+        - Beginner (A1): food, family, travel
+    validations:
+      required: true
+
+  - type: textarea
+    id: source-verification
+    attributes:
+      label: Content source and translation verification
+      description: Where do the translations come from, and how was accuracy verified (dictionaries, native speaker review, etc.)?
+      placeholder: "Translations drafted from ... and cross-checked against ... by ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample-entries
+    attributes:
+      label: Sample entries (optional)
+      description: A few example source/target pairs in the deck format (entry ids match ^[a-z0-9][a-z0-9_-]{0,63}$, non-empty NFC-normalized text, no duplicate pairs).
+      render: json
+      placeholder: |
+        {"id": "water", "source": "water", "target": "agua", "tags": ["noun"]}
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: quality-checks
+    attributes:
+      label: Quality confirmations
+      description: Required before a deck can be accepted.
+      options:
+        - label: Translations have been checked for accuracy against a reliable source or by a proficient speaker.
+          required: true
+        - label: The proposed content is compatible with the existing deck schema (entry ids, non-empty source/target, no duplicate source/target pairs, at least one entry).
+          required: true
+        - label: The content is original or compatibly licensed, and any required attribution is documented here.
+          required: true
+        - label: I understand this issue is a proposal only and does not guarantee the deck will be added.
+          required: true

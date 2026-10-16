@@ -1,0 +1,28 @@
+# EditorConfig: consistent whitespace and encoding across editors.
+# Repository blobs are LF; working-tree CRLF on Windows comes from
+# core.autocrlf and is normalized back to LF on commit.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
+[*.{yaml,yml}]
+indent_size = 2
+
+# Two trailing spaces are meaningful line breaks in Markdown.
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

@@ -1,0 +1,98 @@
+# Continuous integration for Vocab Deck.
+#
+# Triggers: pull requests and pushes to the default branch (main).
+# Permissions are read-only; no secrets are used, so fork PRs are safe.
+# Backend, frontend, and E2E checks run as independent jobs so failures
+# are diagnosable per area.
+
+name: CI
+
+"on":
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install backend with test extras
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+      - name: Run pytest
+        working-directory: backend
+        run: python -m pytest
+
+  frontend:
+    name: Frontend (typecheck, lint, unit, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Unit/component tests
+        working-directory: frontend
+        run: npm test
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python (E2E backend server)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend runtime dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright chromium
+        working-directory: frontend
+        run: npx playwright install chromium --with-deps
+      - name: Run Playwright E2E
+        working-directory: frontend
+        # playwright.config.ts starts its own backend (:8010) and preview
+        # frontend (:4173) via webServer; do not start servers manually.
+        run: npm run test:e2e

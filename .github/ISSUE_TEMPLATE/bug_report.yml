@@ -1,0 +1,102 @@
+name: Bug report
+description: Report a reproducible problem in Vocab Deck.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Before opening this issue, please
+        **search [existing issues](../../issues)** to avoid duplicates, and
+        **never paste passwords, API keys, tokens, or other secrets** —
+        redact them from steps, logs, and screenshots.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Bug summary
+      description: A short, specific description of what is broken.
+      placeholder: "Quiz shows the same distractor twice on en-ja round 3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of the app does this affect?
+      multiple: true
+      options:
+        - Flashcards
+        - Quiz
+        - Typing
+        - Matching
+        - Custom Decks
+        - Built-in Language Decks
+        - Backend API
+        - Theme/Accessibility
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Numbered steps that reliably trigger the bug, starting from a clean state.
+      placeholder: |
+        1. Start the backend (`uvicorn app.main:app --port 8000` in backend/)
+        2. Start the frontend (`npm run dev` in frontend/)
+        3. Go to ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happens instead? Include exact error text where possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser (with version), Python version, Node.js version, and the commit you tested on.
+      placeholder: |
+        - OS: Windows 11
+        - Browser: Chrome 131
+        - Python: 3.11.x (`python --version`)
+        - Node.js: 20.x (`node --version`)
+        - Commit: (output of `git rev-parse --short HEAD`)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots, logs, or console errors (optional)
+      description: Drag screenshots here. Paste terminal/browser-console output inside code blocks and redact any secrets.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I have removed all secrets and personal data from this report.
+          required: true

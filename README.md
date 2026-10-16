@@ -417,7 +417,7 @@ Verified on the committed tree (Windows, Python 3.14, Node 24):
 - **Secret Management:** No secrets in code. No API keys required.
 - **Rate Limiting:** Not implemented (low-risk public vocabulary API).
 - **Content Security Policy:** Not configured; static host should add one.
-- **Vulnerability Reporting:** Open an issue or email the maintainer privately.
+- **Vulnerability Reporting:** See [SECURITY.md](SECURITY.md). Report vulnerabilities privately via the repository's Security tab ("Report a vulnerability") — never in public issues.
 
 
 ---

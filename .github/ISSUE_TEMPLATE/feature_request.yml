@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose a new feature or improvement for Vocab Deck.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. Before opening this request, please
+        **search [existing issues](../../issues)** to avoid duplicates. Large or
+        architectural changes should be discussed with maintainers first
+        (see `CONTRIBUTING.md`), otherwise the proposal may be closed as out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem or limitation does this solve? Who is affected?
+      placeholder: "As a learner, I cannot ... because ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should change? Describe behavior, UI, or API impact concretely.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (optional)
+      description: Other approaches you considered and why they are worse.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected project area
+      description: Which part of the project would this touch?
+      multiple: true
+      options:
+        - Flashcards
+        - Quiz
+        - Typing
+        - Matching
+        - Custom Decks
+        - Built-in Language Decks
+        - Backend API
+        - Theme/Accessibility
+        - Tests / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find a duplicate or conflicting proposal.
+          required: true
+        - label: This proposal fits the project's scope (vocabulary practice app, no accounts/auth, no server-side storage).
+          required: true
