@@ -34,7 +34,10 @@ test("language pair filter narrows the deck list", async () => {
   const user = userEvent.setup();
   renderApp(<App />);
 
-  const filter = await screen.findByLabelText(/filter decks by language pair/i);
+  // Pair options render only after the stubbed fetch resolves; without this
+  // wait the select contains just "All pairs" and the assertion races the load.
+  await screen.findByText(DECK_DTOS[0].name);
+  const filter = screen.getByLabelText(/filter decks by language pair/i);
   await user.selectOptions(filter, "de->ja");
 
   expect(screen.queryByText(DECK_DTOS[0].name)).not.toBeInTheDocument();

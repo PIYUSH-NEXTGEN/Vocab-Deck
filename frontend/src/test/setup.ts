@@ -66,6 +66,15 @@ Object.defineProperty(window, "matchMedia", {
   value: (query: string) => new MatchMediaStub(query),
 });
 
+// jsdom defines window.scrollTo but throws "Not implemented" when called,
+// which spams stderr from components that scroll on navigation/selection.
+// A no-op default keeps logs clean; tests that assert scrolling still
+// vi.spyOn(window, "scrollTo") with their own mock implementation.
+Object.defineProperty(window, "scrollTo", {
+  writable: true,
+  value: (..._args: unknown[]) => {},
+});
+
 function emit(media: string): void {
   const set = listeners.get(media);
   if (!set) return;
