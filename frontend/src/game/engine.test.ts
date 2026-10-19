@@ -1,6 +1,16 @@
 import { describe, expect, test } from "vitest";
 import type { VocabularyEntry } from "../api/types";
-import { MAX_MATCH_PAIRS, MAX_QUIZ_ROUNDS, buildMatchBoard, buildQuizRounds, buildFlashcardOrder } from "./engine";
+import {
+  MAX_MATCH_PAIRS,
+  MAX_QUIZ_ROUNDS,
+  buildMatchBoard,
+  buildQuizRounds,
+  buildFlashcardOrder,
+  buildAdaptiveFlashcardOrder,
+  buildMistakeReviewOrder,
+  updateRetention,
+  type RetentionRecord,
+} from "./engine";
 import { createRng, shuffle } from "./rng";
 import { matchesTranslation, normalizeComparable, normalizeForTyping, stripAccents } from "./text";
 
@@ -180,5 +190,91 @@ describe("typing text rules", () => {
     expect(matchesTranslation("道", item)).toBe(true);
     expect(matchesTranslation("みち", item)).toBe(true);
     expect(matchesTranslation("street", item)).toBe(false);
+  });
+});
+
+describe("Leitner spaced repetition & mistake queue", () => {
+  test("updateRetention advances box on correct answers up to Box 3", () => {
+    let rec: RetentionRecord | undefined = undefined;
+    rec = updateRetention(rec, true);
+    expect(rec).toEqual({
+      box: 1,
+      consecutiveCorrect: 1,
+      totalAttempts: 1,
+      lastAttemptCorrect: true,
+    });
+
+    rec = updateRetention(rec, true);
+    expect(rec.box).toBe(2);
+    expect(rec.consecutiveCorrect).toBe(2);
+
+    rec = updateRetention(rec, true);
+    expect(rec.box).toBe(3);
+    expect(rec.consecutiveCorrect).toBe(3);
+
+    // Box capped at 3 (Mastered)
+    rec = updateRetention(rec, true);
+    expect(rec.box).toBe(3);
+    expect(rec.consecutiveCorrect).toBe(4);
+    expect(rec.totalAttempts).toBe(4);
+  });
+
+  test("updateRetention resets to Box 0 and clears consecutive streaks on error", () => {
+    const mastered: RetentionRecord = {
+      box: 3,
+      consecutiveCorrect: 5,
+      totalAttempts: 5,
+      lastAttemptCorrect: true,
+    };
+
+    const dropped = updateRetention(mastered, false);
+    expect(dropped).toEqual({
+      box: 0,
+      consecutiveCorrect: 0,
+      totalAttempts: 6,
+      lastAttemptCorrect: false,
+    });
+  });
+
+  test("buildAdaptiveFlashcardOrder prioritizes Box 0 ahead of higher boxes", () => {
+    const retention = new Map<string, RetentionRecord>([
+      ["a", { box: 3, consecutiveCorrect: 4, totalAttempts: 4, lastAttemptCorrect: true }],
+      ["b", { box: 2, consecutiveCorrect: 2, totalAttempts: 2, lastAttemptCorrect: true }],
+      ["c", { box: 0, consecutiveCorrect: 0, totalAttempts: 3, lastAttemptCorrect: false }],
+      ["d", { box: 1, consecutiveCorrect: 1, totalAttempts: 1, lastAttemptCorrect: true }],
+      // "e" unrecorded => Box 0 priority
+    ]);
+
+    const ordered = buildAdaptiveFlashcardOrder(DECK, retention, createRng(42));
+    expect(ordered).toHaveLength(DECK.length);
+
+    // First two items must be c and e (Box 0)
+    const firstTwoIds = ordered.slice(0, 2).map((item) => item.id);
+    expect(firstTwoIds.sort()).toEqual(["c", "e"]);
+
+    // Third item must be d (Box 1)
+    expect(ordered[2].id).toBe("d");
+
+    // Fourth item must be b (Box 2)
+    expect(ordered[3].id).toBe("b");
+
+    // Last item must be a (Box 3)
+    expect(ordered[4].id).toBe("a");
+  });
+
+  test("buildMistakeReviewOrder contains only the requested mistakes without duplicates", () => {
+    const mistakes = [DECK[0], DECK[2]];
+    const order = buildMistakeReviewOrder(mistakes, createRng(17));
+    expect(order).toHaveLength(2);
+    expect(new Set(order.map((e) => e.id))).toEqual(new Set(["a", "c"]));
+  });
+
+  test("buildQuizRounds supports targeted question subsets while drawing distractors from full deck", () => {
+    const singleMistake = [DECK[0]]; // only "a"
+    const rounds = buildQuizRounds(DECK, createRng(9), 10, singleMistake);
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0].entry.id).toBe("a");
+    expect(rounds[0].options).toHaveLength(4);
+    expect(rounds[0].options).toContain(DECK[0].target);
   });
 });

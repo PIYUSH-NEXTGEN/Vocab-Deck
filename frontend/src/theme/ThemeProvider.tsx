@@ -8,19 +8,21 @@
  */
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+import {
+  ThemeContext,
+  THEME_STORAGE_KEY,
+  DEFAULT_THEME,
+  type ThemeApi,
+  type ThemeChoice,
+} from "./themeContext";
 
-export type ThemeChoice = "light" | "dark";
-
-export const THEME_STORAGE_KEY = "vocabdeck.theme";
-export const DEFAULT_THEME: ThemeChoice = "light";
+export { THEME_STORAGE_KEY, DEFAULT_THEME, type ThemeApi, type ThemeChoice } from "./themeContext";
 
 function storedTheme(): ThemeChoice | null {
   try {
@@ -30,15 +32,6 @@ function storedTheme(): ThemeChoice | null {
     return null;
   }
 }
-
-export interface ThemeApi {
-  theme: ThemeChoice;
-  /** The theme the toggle switches to. */
-  nextTheme: ThemeChoice;
-  toggle: () => void;
-}
-
-const ThemeContext = createContext<ThemeApi | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeChoice>(() => storedTheme() ?? DEFAULT_THEME);
@@ -64,12 +57,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme(): ThemeApi {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used inside <ThemeProvider>.");
-  }
-  return context;
 }

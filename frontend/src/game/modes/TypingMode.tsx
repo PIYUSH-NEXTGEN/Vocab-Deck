@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PlayableDeck } from "../../api/types";
-import { buildFlashcardOrder } from "../engine";
+import type { PlayableDeck, VocabularyEntry } from "../../api/types";
+import { buildFlashcardOrder, buildMistakeReviewOrder } from "../engine";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { acceptedAnswers, matchesTranslation } from "../text";
@@ -21,33 +21,48 @@ const MAX_ROUND = 50;
 /**
  * Typing: type the translation. Comparison is Unicode-aware (NFC), case- and
  * whitespace-insensitive, accent handling is an explicit setting, and an entry's
- * configured alternative translations are accepted. Empty input is rejected
- * before any scoring happens.
+ * configured alternative translations are accepted. Supports targeted review of
+ * missed entries. Empty input is rejected before any scoring happens.
  */
 export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
-  const { recordTypingAttempt, stats } = useSession();
+  const { recordTypingAttempt } = useSession();
   const register = useAnimationRegistry();
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const { rng, reshuffle } = useSessionSeed(seed);
+  const [reviewMistakes, setReviewMistakes] = useState<VocabularyEntry[] | null>(null);
+
   const fullOrder = useMemo(
-    () => buildFlashcardOrder(deck.entries, rng),
-    [deck.entries, rng],
+    () => {
+      if (reviewMistakes && reviewMistakes.length > 0) {
+        return buildMistakeReviewOrder(reviewMistakes, rng);
+      }
+      return buildFlashcardOrder(deck.entries, rng);
+    },
+    [deck.entries, reviewMistakes, rng],
   );
+
   const [roundSize, setRoundSize] = useState(() => Math.min(fullOrder.length, MAX_ROUND));
   const [sizeInput, setSizeInput] = useState(() => String(Math.min(fullOrder.length, MAX_ROUND)));
   const maxRound = Math.min(fullOrder.length, MAX_ROUND);
-  const order = useMemo(() => fullOrder.slice(0, Math.min(roundSize, maxRound)), [fullOrder, roundSize, maxRound]);
+
+  const order = useMemo(() => {
+    if (reviewMistakes && reviewMistakes.length > 0) return fullOrder;
+    return fullOrder.slice(0, Math.min(roundSize, maxRound));
+  }, [fullOrder, reviewMistakes, roundSize, maxRound]);
+
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result>(null);
   const [ignoreAccents, setIgnoreAccents] = useState(true);
+  const [roundEvaluations, setRoundEvaluations] = useState<
+    Map<string, { entry: VocabularyEntry; correct: boolean; input: string }>
+  >(() => new Map());
 
   const entry = order[Math.min(index, order.length - 1)];
   const finished = index >= order.length;
 
-  // Feedback accent mirrors scoring; it can never delay or block the next step.
   useEffect(() => {
     if (result === "correct") register(pulse(feedbackRef.current));
     else if (result === "incorrect") register(shake(feedbackRef.current));
@@ -67,12 +82,14 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     (next: number) => {
       setRoundSize(next);
       setSizeInput(String(next));
+      setReviewMistakes(null);
+      setRoundEvaluations(new Map());
       reshuffle();
       setIndex(0);
       setError(null);
       setResult(null);
     },
-    [],
+    [reshuffle],
   );
 
   const commitRoundSize = useCallback(
@@ -96,7 +113,12 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     }
     setError(null);
     const correct = matchesTranslation(input, entry, { ignoreAccents });
-    recordTypingAttempt(correct);
+    recordTypingAttempt(correct, entry.id);
+    setRoundEvaluations((prev) => {
+      const next = new Map(prev);
+      next.set(entry.id, { entry, correct, input });
+      return next;
+    });
     setResult(correct ? "correct" : "incorrect");
   }
 
@@ -104,23 +126,82 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     setIndex((value) => value + 1);
   }
 
-  function playAgain() {
+  const playAgain = useCallback(() => {
     reshuffle();
+    setReviewMistakes(null);
+    setRoundEvaluations(new Map());
     setIndex(0);
-  }
+    setError(null);
+    setResult(null);
+  }, [reshuffle]);
+
+  const missedItems = useMemo(
+    () => Array.from(roundEvaluations.values()).filter((item) => !item.correct),
+    [roundEvaluations],
+  );
+
+  const correctCount = useMemo(
+    () => Array.from(roundEvaluations.values()).filter((item) => item.correct).length,
+    [roundEvaluations],
+  );
+
+  const startMistakeReview = useCallback(() => {
+    if (missedItems.length === 0) return;
+    const mistakesToReview = missedItems.map((m) => m.entry);
+    reshuffle();
+    setReviewMistakes(mistakesToReview);
+    setRoundEvaluations(new Map());
+    setIndex(0);
+    setError(null);
+    setResult(null);
+  }, [missedItems, reshuffle]);
 
   if (finished) {
     return (
       <div ref={summaryRef}>
         <Panel className="stack summary">
-          <h3>Typing complete</h3>
+          <h3>{reviewMistakes ? "Review round complete" : "Typing complete"}</h3>
           <p className="muted">
-            You typed {stats.typing.attempted} translations this session, {stats.typing.correct}{" "}
-            of them correctly.
+            You typed {roundEvaluations.size} translations this round: {correctCount} correct
+            {missedItems.length > 0 ? `, ${missedItems.length} incorrect` : ""}.
           </p>
+
+          {missedItems.length > 0 ? (
+            <div className="stack-tight mistake-section">
+              <span className="label">Words needing practice ({missedItems.length}):</span>
+              <ul className="mistake-list">
+                {missedItems.map((item) => (
+                  <li key={item.entry.id} className="mistake-item">
+                    <span className="mistake-word">
+                      <strong>{item.entry.source}</strong>: You typed <em>"{item.input}"</em>{" "}
+                      (Expected: <span className="mistake-correct">{acceptedAnswers(item.entry).join(", ")}</span>)
+                    </span>
+                    {nativeScript(item.entry).length > 0 ? (
+                      <span className="faint mistake-native">
+                        ({nativeScript(item.entry).join(", ")})
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="notice notice-pill">
+              🎉 Flawless typing! Every word this round was typed correctly.
+            </p>
+          )}
+
           <div className="row">
-            <Button variant="primary" onClick={playAgain}>
-              Practice again
+            {missedItems.length > 0 ? (
+              <Button variant="primary" onClick={startMistakeReview}>
+                Review Missed Words ({missedItems.length})
+              </Button>
+            ) : null}
+            <Button
+              variant={missedItems.length > 0 ? "secondary" : "primary"}
+              onClick={playAgain}
+            >
+              {reviewMistakes ? "Back to full deck" : "Practice again"}
             </Button>
           </div>
         </Panel>
@@ -132,16 +213,18 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     <div className="stack">
       <div className="row row-space round-controls">
         <span className="label">
-          Entry {index + 1} of {order.length}
+          {reviewMistakes ? "Review Entry" : "Entry"} {index + 1} of {order.length}
         </span>
-        <RoundSizeField
-          id="typing-round-size"
-          label="Entries this round"
-          max={maxRound}
-          value={sizeInput}
-          onChange={setSizeInput}
-          onCommit={commitRoundSize}
-        />
+        {!reviewMistakes ? (
+          <RoundSizeField
+            id="typing-round-size"
+            label="Entries this round"
+            max={maxRound}
+            value={sizeInput}
+            onChange={setSizeInput}
+            onCommit={commitRoundSize}
+          />
+        ) : null}
         <ProgressBar value={index} max={order.length} label={`${index} typed`} />
       </div>
 
@@ -207,14 +290,15 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
               </p>
               <div className="row">
                 <Button variant="primary" type="submit">
-                  {index + 1 >= order.length ? "See results" : "Next entry"}
+                  {index + 1 >= order.length ? "See results" : "Next entry"}{" "}
+                  <span aria-hidden="true" className="kbd-hint">[Enter]</span>
                 </Button>
               </div>
             </div>
           ) : (
             <div className="row">
               <Button variant="primary" onClick={submit}>
-                Check answer
+                Check answer <span aria-hidden="true" className="kbd-hint">[Enter]</span>
               </Button>
             </div>
           )}

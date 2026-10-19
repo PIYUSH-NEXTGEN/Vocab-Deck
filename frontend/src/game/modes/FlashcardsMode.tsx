@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PlayableDeck } from "../../api/types";
-import { buildFlashcardOrder } from "../engine";
+import type { PlayableDeck, VocabularyEntry } from "../../api/types";
+import {
+  buildAdaptiveFlashcardOrder,
+  buildFlashcardOrder,
+  buildMistakeReviewOrder,
+} from "../engine";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { rise, useAnimationRegistry } from "../../lib/motion";
@@ -18,25 +22,42 @@ export const MAX_ROUND = 50;
 
 /**
  * Flashcards: show the source word, reveal the translation (automatically or on
- * demand), then self-assess. The auto-reveal timer is always cleaned up: on
- * card change, on manual reveal, and on unmount (e.g. mode switches). The card
- * flip is a CSS transform; reduced motion swaps the faces without animating.
+ * demand), then self-assess. Supports standard shuffle or Leitner spaced-repetition
+ * prioritization, keyboard shortcuts (Space to reveal, 1/2 or arrows to assess),
+ * and targeted review of missed words.
  */
 export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
-  const { recordFlashcardAssessment } = useSession();
+  const { recordFlashcardAssessment, retention } = useSession();
   const register = useAnimationRegistry();
   const { rng, reshuffle } = useSessionSeed(seed);
-  const fullOrder = useMemo(
-    () => buildFlashcardOrder(deck.entries, rng),
-    [deck.entries, rng],
-  );
+  const [useAdaptive, setUseAdaptive] = useState(false);
+  const [reviewQueue, setReviewQueue] = useState<VocabularyEntry[] | null>(null);
+
+  const fullOrder = useMemo(() => {
+    if (useAdaptive) {
+      return buildAdaptiveFlashcardOrder(deck.entries, retention, rng);
+    }
+    return buildFlashcardOrder(deck.entries, rng);
+    // Stable order during a round; reshuffle() rebuilds when starting a new round or changing size
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck.entries, rng, useAdaptive]);
+
   const [roundSize, setRoundSize] = useState(() => Math.min(fullOrder.length, MAX_ROUND));
   const [sizeInput, setSizeInput] = useState(() => String(Math.min(fullOrder.length, MAX_ROUND)));
   const maxRound = Math.min(fullOrder.length, MAX_ROUND);
-  const order = useMemo(() => fullOrder.slice(0, Math.min(roundSize, maxRound)), [fullOrder, roundSize, maxRound]);
+
+  const order = useMemo(() => {
+    if (reviewQueue !== null) return reviewQueue;
+    return fullOrder.slice(0, Math.min(roundSize, maxRound));
+  }, [fullOrder, reviewQueue, roundSize, maxRound]);
+
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [roundAssessments, setRoundAssessments] = useState<
+    Map<string, { entry: VocabularyEntry; assessment: "known" | "needsPractice" }>
+  >(() => new Map());
+
   const timerRef = useRef<number | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,12 +86,14 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
       clearTimer();
       setRoundSize(next);
       setSizeInput(String(next));
-      reshuffle(); // fresh shuffle for the new subset
+      setReviewQueue(null);
+      setRoundAssessments(new Map());
+      reshuffle();
       setIndex(0);
       setRevealed(false);
       setFinished(false);
     },
-    [clearTimer],
+    [clearTimer, reshuffle],
   );
 
   /** Accept only whole numbers inside the deck's range; otherwise revert. */
@@ -99,32 +122,131 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
 
   const assess = useCallback(
     (assessment: "known" | "needsPractice") => {
-      recordFlashcardAssessment(assessment);
+      const currentEntry = order[index];
+      if (currentEntry) {
+        recordFlashcardAssessment(assessment, currentEntry.id);
+        setRoundAssessments((prev) => {
+          const next = new Map(prev);
+          next.set(currentEntry.id, { entry: currentEntry, assessment });
+          return next;
+        });
+      }
       advance();
     },
-    [advance, recordFlashcardAssessment],
+    [advance, index, order, recordFlashcardAssessment],
   );
+
+  // Keyboard navigation: Space/Enter reveals, 1/Left = needsPractice, 2/Right = known
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (finished) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (!revealed) {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          clearTimer();
+          setRevealed(true);
+        }
+      } else {
+        if (event.key === "1" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          assess("needsPractice");
+        } else if (event.key === "2" || event.key === "ArrowRight") {
+          event.preventDefault();
+          assess("known");
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [assess, clearTimer, finished, revealed]);
 
   const restart = useCallback(() => {
     clearTimer();
     reshuffle();
+    setReviewQueue(null);
+    setRoundAssessments(new Map());
     setIndex(0);
     setRevealed(false);
     setFinished(false);
-  }, [clearTimer]);
+  }, [clearTimer, reshuffle]);
+
+  const missedEntries = useMemo(
+    () =>
+      Array.from(roundAssessments.values())
+        .filter((item) => item.assessment === "needsPractice")
+        .map((item) => item.entry),
+    [roundAssessments],
+  );
+
+  const knownCount = useMemo(
+    () =>
+      Array.from(roundAssessments.values()).filter((item) => item.assessment === "known").length,
+    [roundAssessments],
+  );
+
+  const startMistakeReview = useCallback(() => {
+    if (missedEntries.length === 0) return;
+    clearTimer();
+    const reviewOrder = buildMistakeReviewOrder(missedEntries, rng);
+    setReviewQueue(reviewOrder);
+    setRoundAssessments(new Map());
+    setIndex(0);
+    setRevealed(false);
+    setFinished(false);
+  }, [clearTimer, missedEntries, rng]);
 
   if (finished) {
     return (
       <div ref={summaryRef}>
         <Panel className="stack summary">
-          <h3>Deck finished</h3>
+          <h3>{reviewQueue ? "Review round finished" : "Deck finished"}</h3>
           <p className="muted">
-            You reviewed all {order.length} cards. Self-assessments are in the session
-            summary above.
+            You reviewed all {order.length} cards: {knownCount} marked known
+            {missedEntries.length > 0 ? `, ${missedEntries.length} needing practice` : ""}.
           </p>
+
+          {missedEntries.length > 0 ? (
+            <div className="stack-tight mistake-section">
+              <span className="label">Words needing practice ({missedEntries.length}):</span>
+              <ul className="mistake-list">
+                {missedEntries.map((e) => (
+                  <li key={e.id} className="mistake-item">
+                    <span className="mistake-word">
+                      <strong>{e.source}</strong> → {e.target}
+                    </span>
+                    {nativeScript(e).length > 0 ? (
+                      <span className="faint mistake-native">({nativeScript(e).join(", ")})</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="notice notice-pill">
+              Outstanding! All reviewed cards were marked as known.
+            </p>
+          )}
+
           <div className="row">
-            <Button variant="primary" onClick={restart}>
-              Study again
+            {missedEntries.length > 0 ? (
+              <Button variant="primary" onClick={startMistakeReview}>
+                Review Missed Words ({missedEntries.length})
+              </Button>
+            ) : null}
+            <Button
+              variant={missedEntries.length > 0 ? "secondary" : "primary"}
+              onClick={restart}
+            >
+              {reviewQueue ? "Back to full deck" : "Study again"}
             </Button>
           </div>
         </Panel>
@@ -138,16 +260,36 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
     <div className="stack">
       <div className="row row-space round-controls">
         <span className="label">
-          Card {index + 1} of {order.length}
+          {reviewQueue ? "Reviewing card" : "Card"} {index + 1} of {order.length}
         </span>
-        <RoundSizeField
-          id="flashcard-round-size"
-          label="Cards this round"
-          max={maxRound}
-          value={sizeInput}
-          onChange={setSizeInput}
-          onCommit={commitRoundSize}
-        />
+        <div className="row round-control-group">
+          {!reviewQueue ? (
+            <button
+              type="button"
+              className={`mode-order-button${useAdaptive ? " is-active" : ""}`}
+              onClick={() => {
+                setUseAdaptive((prev) => !prev);
+                reshuffle();
+                setIndex(0);
+                setRevealed(false);
+                setRoundAssessments(new Map());
+              }}
+              title="Prioritize low-retention vocabulary using Leitner spaced repetition"
+            >
+              {useAdaptive ? "Spaced Repetition" : "Random Order"}
+            </button>
+          ) : null}
+          {!reviewQueue ? (
+            <RoundSizeField
+              id="flashcard-round-size"
+              label="Cards this round"
+              max={maxRound}
+              value={sizeInput}
+              onChange={setSizeInput}
+              onCommit={commitRoundSize}
+            />
+          ) : null}
+        </div>
         <ProgressBar value={index} max={order.length} label={`${index} reviewed`} />
       </div>
 
@@ -158,7 +300,7 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
             <p className="flashcard-word lang-text" lang={deck.sourceLanguage}>
               {entry.source}
             </p>
-            <p className="faint">The translation appears automatically after 3 seconds.</p>
+            <p className="faint">The translation appears automatically after 3 seconds, or press Space.</p>
           </div>
           <div className="flashcard-face flashcard-face-back" aria-hidden="true">
             <span className="label">{languageName(deck.targetLanguage)}</span>
@@ -186,12 +328,16 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
       </Panel>
 
       {revealed ? (
-        <div className="row">
-          <Button variant="primary" onClick={() => assess("known")}>
-            Known
+        <div className="row flashcard-actions">
+          <Button variant="primary" onClick={() => assess("known")} title="Press 2 or Arrow Right">
+            Known <span aria-hidden="true" className="kbd-hint">[2]</span>
           </Button>
-          <Button variant="danger-outline" onClick={() => assess("needsPractice")}>
-            Needs practice
+          <Button
+            variant="danger-outline"
+            onClick={() => assess("needsPractice")}
+            title="Press 1 or Arrow Left"
+          >
+            Needs practice <span aria-hidden="true" className="kbd-hint">[1]</span>
           </Button>
         </div>
       ) : (
@@ -201,8 +347,9 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
             clearTimer();
             setRevealed(true);
           }}
+          title="Press Space"
         >
-          Reveal translation
+          Reveal translation <span aria-hidden="true" className="kbd-hint">[Space]</span>
         </Button>
       )}
     </div>

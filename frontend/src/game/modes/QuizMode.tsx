@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useRef, useState } from "react";
-import type { PlayableDeck } from "../../api/types";
+import type { PlayableDeck, VocabularyEntry } from "../../api/types";
 import { MAX_QUIZ_ROUNDS, buildQuizRounds } from "../engine";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
@@ -15,35 +15,48 @@ import { RoundSizeField } from "../../components/RoundSizeField";
 
 /**
  * Multiple choice: one correct translation among distinct options built by the
- * engine (never fabricated). Submissions are locked after the first submit, so
- * a round can be scored exactly once.
+ * engine (never fabricated). Supports keyboard shortcuts (1-4 to choose, Enter to
+ * submit/advance) and targeted mistake review. Submissions are locked after the
+ * first submit, so a round can be scored exactly once.
  */
 export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
-  const { recordQuizAnswer, stats } = useSession();
+  const { recordQuizAnswer } = useSession();
   const register = useAnimationRegistry();
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const { rng, reshuffle } = useSessionSeed(seed);
+  const [reviewMistakes, setReviewMistakes] = useState<VocabularyEntry[] | null>(null);
+
   const allRounds = useMemo(
-    () => buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS),
-    [deck.entries, rng],
+    () => {
+      if (reviewMistakes && reviewMistakes.length > 0) {
+        return buildQuizRounds(deck.entries, rng, reviewMistakes.length, reviewMistakes);
+      }
+      return buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS);
+    },
+    [deck.entries, reviewMistakes, rng],
   );
+
   const maxQuestions = allRounds.length;
   const [questionCount, setQuestionCount] = useState(maxQuestions);
   const [countInput, setCountInput] = useState(() => String(maxQuestions));
+
   const rounds = useMemo(
     () => allRounds.slice(0, Math.min(questionCount, maxQuestions)),
     [allRounds, questionCount, maxQuestions],
   );
+
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [roundEvaluations, setRoundEvaluations] = useState<
+    Map<string, { entry: VocabularyEntry; correct: boolean; chosen: string; answer: string }>
+  >(() => new Map());
 
-  // Derived before the early returns so both effects below stay unconditional.
+  // Derived before early returns so effects remain unconditional
   const activeRound = rounds.length > 0 ? rounds[Math.min(index, rounds.length - 1)] : null;
 
-  // Map each option string back to its entry so the Japanese script
-  // (kanji/kana) can be shown next to the typable romaji answer.
+  // Map each option string back to its entry for Japanese script
   const optionScript = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const e of deck.entries) {
@@ -53,7 +66,6 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     return map;
   }, [deck.entries]);
 
-  /** Accept only whole numbers inside 1..maxQuestions; otherwise revert. */
   const commitQuestionCount = useCallback(
     (raw: string) => {
       const parsed = parseBoundedCount(raw, maxQuestions);
@@ -68,7 +80,9 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       }
       setQuestionCount(parsed);
       setCountInput(String(parsed));
-      reshuffle(); // a fresh set of questions for the new count
+      setReviewMistakes(null);
+      setRoundEvaluations(new Map());
+      reshuffle();
       setIndex(0);
       setSelected(null);
       setSubmitted(false);
@@ -76,8 +90,6 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     [maxQuestions, questionCount, reshuffle],
   );
 
-  // Feedback accent: pulse for correct, gentle shake for incorrect. Scoring is
-  // already done by the time it runs, so animation never gates state.
   useEffect(() => {
     if (!submitted || !activeRound) return;
     if (selected === activeRound.answer) {
@@ -91,6 +103,97 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     if (rounds.length > 0 && index >= rounds.length) register(rise(summaryRef.current));
   }, [index, rounds.length, register]);
 
+  const finished = index >= rounds.length;
+  const round = rounds[Math.min(index, rounds.length - 1)];
+
+  const submit = useCallback(() => {
+    if (submitted || selected === null || !round) return;
+    const isCorrect = selected === round.answer;
+    setSubmitted(true);
+    recordQuizAnswer(isCorrect, round.entry.id);
+    setRoundEvaluations((prev) => {
+      const next = new Map(prev);
+      next.set(round.entry.id, {
+        entry: round.entry,
+        correct: isCorrect,
+        chosen: selected,
+        answer: round.answer,
+      });
+      return next;
+    });
+  }, [recordQuizAnswer, round, selected, submitted]);
+
+  const next = useCallback(() => {
+    setSelected(null);
+    setSubmitted(false);
+    setIndex((value) => value + 1);
+  }, []);
+
+  // Keyboard navigation: 1-4 chooses options, Enter submits or advances
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (finished || !round) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (!submitted) {
+        const keyNum = parseInt(event.key, 10);
+        if (keyNum >= 1 && keyNum <= round.options.length) {
+          event.preventDefault();
+          setSelected(round.options[keyNum - 1]);
+        } else if (event.key === "Enter" && selected !== null) {
+          event.preventDefault();
+          submit();
+        }
+      } else {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          next();
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [finished, next, round, selected, submit, submitted]);
+
+  const playAgain = useCallback(() => {
+    reshuffle();
+    setReviewMistakes(null);
+    setRoundEvaluations(new Map());
+    setIndex(0);
+    setSelected(null);
+    setSubmitted(false);
+  }, [reshuffle]);
+
+  const missedItems = useMemo(
+    () => Array.from(roundEvaluations.values()).filter((item) => !item.correct),
+    [roundEvaluations],
+  );
+
+  const correctCount = useMemo(
+    () => Array.from(roundEvaluations.values()).filter((item) => item.correct).length,
+    [roundEvaluations],
+  );
+
+  const startMistakeReview = useCallback(() => {
+    if (missedItems.length === 0) return;
+    const mistakesToReview = missedItems.map((m) => m.entry);
+    reshuffle();
+    setReviewMistakes(mistakesToReview);
+    setQuestionCount(mistakesToReview.length);
+    setCountInput(String(mistakesToReview.length));
+    setRoundEvaluations(new Map());
+    setIndex(0);
+    setSelected(null);
+    setSubmitted(false);
+  }, [missedItems, reshuffle]);
+
   if (maxQuestions === 0) {
     return (
       <EmptyState
@@ -100,40 +203,53 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     );
   }
 
-  const finished = index >= rounds.length;
-  const round = rounds[Math.min(index, rounds.length - 1)];
-
-  function submit() {
-    if (submitted || selected === null) return; // duplicate-submission guard
-    setSubmitted(true);
-    recordQuizAnswer(selected === round.answer);
-  }
-
-  function next() {
-    setSelected(null);
-    setSubmitted(false);
-    setIndex((value) => value + 1);
-  }
-
-  function playAgain() {
-    reshuffle();
-    setIndex(0);
-    setSelected(null);
-    setSubmitted(false);
-  }
-
   if (finished) {
     return (
       <div ref={summaryRef}>
         <Panel className="stack summary">
-          <h3>Quiz complete</h3>
+          <h3>{reviewMistakes ? "Review quiz complete" : "Quiz complete"}</h3>
           <p className="muted">
-            You answered {stats.quiz.answered} questions this session, {stats.quiz.correct} of
-            them correctly.
+            You answered {roundEvaluations.size} questions this round: {correctCount} correct
+            {missedItems.length > 0 ? `, ${missedItems.length} incorrect` : ""}.
           </p>
+
+          {missedItems.length > 0 ? (
+            <div className="stack-tight mistake-section">
+              <span className="label">Questions missed ({missedItems.length}):</span>
+              <ul className="mistake-list">
+                {missedItems.map((item) => (
+                  <li key={item.entry.id} className="mistake-item">
+                    <span className="mistake-word">
+                      <strong>{item.entry.source}</strong>: You picked{" "}
+                      <em>{item.chosen}</em> (Correct:{" "}
+                      <span className="mistake-correct">{item.answer}</span>)
+                    </span>
+                    {nativeScript(item.entry).length > 0 ? (
+                      <span className="faint mistake-native">
+                        ({nativeScript(item.entry).join(", ")})
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="notice notice-pill">
+              🎉 Perfect score! Every question in this round was answered correctly.
+            </p>
+          )}
+
           <div className="row">
-            <Button variant="primary" onClick={playAgain}>
-              Play again
+            {missedItems.length > 0 ? (
+              <Button variant="primary" onClick={startMistakeReview}>
+                Review Missed Questions ({missedItems.length})
+              </Button>
+            ) : null}
+            <Button
+              variant={missedItems.length > 0 ? "secondary" : "primary"}
+              onClick={playAgain}
+            >
+              {reviewMistakes ? "Back to full deck" : "Play again"}
             </Button>
           </div>
         </Panel>
@@ -145,16 +261,18 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     <div className="stack">
       <div className="row row-space round-controls">
         <span className="label">
-          Question {index + 1} of {rounds.length}
+          {reviewMistakes ? "Review Question" : "Question"} {index + 1} of {rounds.length}
         </span>
-        <RoundSizeField
-          id="quiz-question-count"
-          label="Questions"
-          max={maxQuestions}
-          value={countInput}
-          onChange={setCountInput}
-          onCommit={commitQuestionCount}
-        />
+        {!reviewMistakes ? (
+          <RoundSizeField
+            id="quiz-question-count"
+            label="Questions"
+            max={maxQuestions}
+            value={countInput}
+            onChange={setCountInput}
+            onCommit={commitQuestionCount}
+          />
+        ) : null}
         <ProgressBar value={index} max={rounds.length} label={`${index} answered`} />
       </div>
 
@@ -169,7 +287,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       </Panel>
 
       <ul className="option-list">
-        {round.options.map((option) => {
+        {round.options.map((option, optIdx) => {
           const isAnswer = option === round.answer;
           const isChosen = option === selected;
           const tone = !submitted
@@ -188,6 +306,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
                 disabled={submitted}
                 onClick={() => setSelected(option)}
               >
+                <span aria-hidden="true" className="kbd-badge">[{optIdx + 1}]</span>
                 <span className="option-text lang-text" lang={deck.targetLanguage}>
                   {option}
                 </span>
@@ -212,16 +331,17 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
             </p>
             <div className="row">
               <Button variant="primary" onClick={next}>
-                {index + 1 >= rounds.length ? "See results" : "Next question"}
+                {index + 1 >= rounds.length ? "See results" : "Next question"}{" "}
+                <span aria-hidden="true" className="kbd-hint">[Enter]</span>
               </Button>
             </div>
           </div>
         ) : (
           <div className="row quiz-submit-row">
             <Button variant="primary" onClick={submit} disabled={selected === null}>
-              Submit answer
+              Submit answer {selected !== null ? <span aria-hidden="true" className="kbd-hint">[Enter]</span> : null}
             </Button>
-            {selected === null ? <span className="faint">Select an option first.</span> : null}
+            {selected === null ? <span className="faint">Select an option (or press 1-{round.options.length}).</span> : null}
           </div>
         )}
       </div>
