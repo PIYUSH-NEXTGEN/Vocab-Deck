@@ -166,5 +166,31 @@ describe("TypingMode typo tolerance with Damerau-Levenshtein", () => {
 
     setItemSpy.mockRestore();
   });
+
+  test("enforces 80% minimum similarity threshold for words of length >= 8 in TypingMode", () => {
+    const LONG_DECK: PlayableDeck = {
+      id: "long-deck",
+      name: "Long Words Deck",
+      description: "Testing 80% threshold",
+      sourceLanguage: "en",
+      targetLanguage: "en",
+      entryCount: 1,
+      origin: "builtin",
+      entries: [
+        { id: "dict", source: "dictionary", target: "dictionary", alternatives: [], tags: [] },
+      ],
+    };
+
+    renderWithSession(<TypingMode deck={LONG_DECK} seed={1} />);
+    const input = screen.getByPlaceholderText("Type the translation");
+
+    // "diktionari" is distance 2 from "dictionary" (len 10), similarity = 8/10 = 0.80 (exactly 80%) -> accepted as near-miss
+    fireEvent.change(input, { target: { value: "diktionari" } });
+    fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(/Almost! Accepted with typo/i);
+    expect(status).toHaveTextContent(/dictionary/i);
+  });
 });
 

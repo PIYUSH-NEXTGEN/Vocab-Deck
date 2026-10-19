@@ -109,7 +109,7 @@ export function similarityScore(a: string, b: string): number {
  * Pedagogical threshold guidelines:
  * - Length <= 3: Typo tolerance disabled (e.g. "eau", "cat", "the"). A 1-char change is >33% of the word.
  * - Length 4-7: Distance of exactly 1 edit is a typo (e.g. "pome" -> "pomme", "chiene" -> "chien", "amiosn" -> "maison").
- * - Length >= 8: Distance <= 2 is a typo provided similarity >= 0.75 (75% match).
+ * - Length >= 8: Distance <= 2 is a typo provided similarity >= 0.80 (80% match).
  */
 export function isTypoMatch(userText: string, targetText: string): boolean {
   const dist = damerauLevenshtein(userText, targetText);
@@ -122,9 +122,9 @@ export function isTypoMatch(userText: string, targetText: string): boolean {
     return dist === 1;
   }
 
-  // targetLen >= 8
+  // targetLen >= 8: distance <= 2 and similarity >= 80%
   const sim = similarityScore(userText, targetText);
-  return dist <= 2 && sim >= 0.75;
+  return dist <= 2 && sim >= 0.8;
 }
 
 export type EditOpType = "match" | "insertion" | "deletion" | "substitution" | "transposition";

@@ -123,12 +123,12 @@ describe("isTypoMatch", () => {
     expect(isTypoMatch("chianx", "chien")).toBe(false); // 2 edits
   });
 
-  test("accepts up to 2-character slips on long words (length >= 8) with >= 75% similarity", () => {
+  test("accepts up to 2-character slips on long words (length >= 8) with >= 80% similarity", () => {
     // "bibliotheque" is 12 letters
-    expect(isTypoMatch("biblioteque", "bibliotheque")).toBe(true); // 1 edit, >75%
-    expect(isTypoMatch("bibliotque", "bibliotheque")).toBe(true); // 2 edits (10/12 = 83% >= 75%)
-    expect(isTypoMatch("restaurant", "restaraunt")).toBe(true); // 1 transposition
-    expect(isTypoMatch("guten morgen", "gutn morgn")).toBe(true); // 2 edits
+    expect(isTypoMatch("biblioteque", "bibliotheque")).toBe(true); // 1 edit, >80% (11/12 = 91.7%)
+    expect(isTypoMatch("bibliotque", "bibliotheque")).toBe(true); // 2 edits (10/12 = 83.3% >= 80%)
+    expect(isTypoMatch("restaurant", "restaraunt")).toBe(true); // 1 transposition (9/10 = 90% >= 80%)
+    expect(isTypoMatch("guten morgen", "gutn morgn")).toBe(true); // 2 edits (10/12 = 83.3% >= 80%)
   });
 
   test("rejects heavy misspellings on long words", () => {
@@ -152,12 +152,72 @@ describe("isTypoMatch", () => {
     expect(isTypoMatch("bnjour", "bonjour")).toBe(true); // len 7, dist 1 -> true
     expect(isTypoMatch("bnjor", "bonjour")).toBe(false); // len 7, dist 2 -> false
 
-    // Length 8: dist 1 and dist 2 accepted if sim >= 0.75
+    // Length 8: dist 1 accepted (sim 7/8 = 0.875 >= 0.80); dist 2 rejected (sim 6/8 = 0.75 < 0.80)
     // "sandwich" has length 8
     expect(isTypoMatch("sandwhich", "sandwich")).toBe(true); // len 8, dist 1 -> true
     expect(isTypoMatch("sndwich", "sandwich")).toBe(true); // len 8, dist 1, sim 7/8 = 0.875 -> true
-    expect(isTypoMatch("sndwch", "sandwich")).toBe(true); // len 8, dist 2, sim 6/8 = 0.75 -> true
+    expect(isTypoMatch("sndwch", "sandwich")).toBe(false); // len 8, dist 2, sim 6/8 = 0.75 (< 0.80) -> false
     expect(isTypoMatch("sndw", "sandwich")).toBe(false); // len 8, dist 4 -> false
+  });
+});
+
+describe("80% similarity threshold boundary tests for words of length >= 8", () => {
+  test("answers exactly at the 80% threshold (length 10, distance 2 -> sim = 0.80) are accepted", () => {
+    // Target length 10: "dictionary"
+    // User types "diktionari": 2 substitutions ('c' -> 'k', 'y' -> 'i')
+    // Distance = 2, maxLen = 10, similarity = 1 - 2/10 = 0.80 (exactly 80%)
+    expect(similarityScore("diktionari", "dictionary")).toBe(0.8);
+    expect(damerauLevenshtein("diktionari", "dictionary")).toBe(2);
+    expect(isTypoMatch("diktionari", "dictionary")).toBe(true);
+
+    // Another length 10 example: "sandwiches"
+    // User types "sndwichess" (1 deletion 'a' + 1 insertion 's' -> dist 2, len 10)
+    // Distance = 2, maxLen = 10, similarity = 1 - 2/10 = 0.80
+    expect(similarityScore("sndwichess", "sandwiches")).toBe(0.8);
+    expect(isTypoMatch("sndwichess", "sandwiches")).toBe(true);
+  });
+
+  test("answers strictly below the 80% threshold with distance 2 are rejected", () => {
+    // Target length 8: "sandwich"
+    // User types "sndwch" (2 deletions: 'a' and 'i')
+    // Distance = 2, maxLen = 8, similarity = 6/8 = 0.75 (75% < 80%)
+    expect(similarityScore("sndwch", "sandwich")).toBe(0.75);
+    expect(isTypoMatch("sndwch", "sandwich")).toBe(false);
+
+    // Target length 9: "wonderful"
+    // User types "wnderfuls" (1 deletion 'o' + 1 insertion 's' -> dist 2, len 9)
+    // Distance = 2, maxLen = 9, similarity = 7/9 = 0.7777... (77.8% < 80%)
+    expect(similarityScore("wnderfuls", "wonderful")).toBeCloseTo(0.7778, 3);
+    expect(isTypoMatch("wnderfuls", "wonderful")).toBe(false);
+  });
+
+  test("answers strictly above the 80% threshold with distance 1 or 2 are accepted", () => {
+    // Length 8 with 1 edit: similarity = 7/8 = 0.875 (87.5% > 80%)
+    expect(similarityScore("sndwich", "sandwich")).toBe(0.875);
+    expect(isTypoMatch("sndwich", "sandwich")).toBe(true);
+
+    // Length 9 with 1 edit: similarity = 8/9 = 0.8889 (88.9% > 80%)
+    expect(similarityScore("wnderful", "wonderful")).toBeCloseTo(0.8889, 3);
+    expect(isTypoMatch("wnderful", "wonderful")).toBe(true);
+
+    // Length 11 with 2 edits: "infrmationn" vs "information"
+    // Distance = 2, maxLen = 11, similarity = 9/11 = 0.8182 (81.8% > 80%)
+    expect(similarityScore("infrmationn", "information")).toBeCloseTo(0.8182, 3);
+    expect(isTypoMatch("infrmationn", "information")).toBe(true);
+
+    // Length 12 with 2 edits: "bibliotque" vs "bibliotheque"
+    // Distance = 2, maxLen = 12, similarity = 10/12 = 0.8333 (83.3% > 80%)
+    expect(similarityScore("bibliotque", "bibliotheque")).toBeCloseTo(0.8333, 3);
+    expect(isTypoMatch("bibliotque", "bibliotheque")).toBe(true);
+  });
+
+  test("answers with distance > 2 are rejected even if similarity >= 80%", () => {
+    // Length 16: "misunderstanding" (len 16)
+    // User types "msundrstandin" -> 3 deletions ('i', 'e', 'g')
+    // Distance = 3, maxLen = 16, similarity = 13/16 = 0.8125 (81.25% >= 80%)
+    expect(similarityScore("msundrstandin", "misunderstanding")).toBe(0.8125);
+    expect(damerauLevenshtein("msundrstandin", "misunderstanding")).toBe(3);
+    expect(isTypoMatch("msundrstandin", "misunderstanding")).toBe(false);
   });
 });
 
