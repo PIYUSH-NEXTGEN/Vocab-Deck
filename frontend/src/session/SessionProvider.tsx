@@ -14,14 +14,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [retention, setRetention] = useState<Map<string, RetentionRecord>>(() => new Map());
   const [epoch, setEpoch] = useState(0);
 
-  const recordEntryResult = useCallback((entryId: string, correct: boolean) => {
-    setRetention((prev) => {
-      const next = new Map(prev);
-      const current = next.get(entryId);
-      next.set(entryId, updateRetention(current, correct));
-      return next;
-    });
-  }, []);
+  const recordEntryResult = useCallback(
+    (entryId: string, outcome: boolean | "exact" | "typo" | "incorrect") => {
+      setRetention((prev) => {
+        const next = new Map(prev);
+        const current = next.get(entryId);
+        next.set(entryId, updateRetention(current, outcome));
+        return next;
+      });
+    },
+    [],
+  );
 
   const recordFlashcardAssessment = useCallback(
     (assessment: "known" | "needsPractice", entryId?: string) => {
@@ -56,16 +59,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const recordTypingAttempt = useCallback(
-    (correct: boolean, entryId?: string) => {
+    (correct: boolean, entryId?: string, outcome?: "exact" | "typo" | "incorrect") => {
+      const resolvedOutcome = outcome ?? (correct ? "exact" : "incorrect");
+      const isExact = resolvedOutcome === "exact";
+      const isTypo = resolvedOutcome === "typo";
+      const isIncorrect = resolvedOutcome === "incorrect";
+
       setStats((prev) => ({
         ...prev,
         typing: {
           correct: prev.typing.correct + (correct ? 1 : 0),
+          exact: (prev.typing.exact ?? 0) + (isExact ? 1 : 0),
+          typos: (prev.typing.typos ?? 0) + (isTypo ? 1 : 0),
+          incorrect: (prev.typing.incorrect ?? 0) + (isIncorrect ? 1 : 0),
           attempted: prev.typing.attempted + 1,
         },
       }));
       if (entryId) {
-        recordEntryResult(entryId, correct);
+        recordEntryResult(entryId, resolvedOutcome);
       }
     },
     [recordEntryResult],

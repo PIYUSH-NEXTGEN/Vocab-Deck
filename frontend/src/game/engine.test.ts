@@ -12,7 +12,7 @@ import {
   type RetentionRecord,
 } from "./engine";
 import { createRng, shuffle } from "./rng";
-import { matchesTranslation, normalizeComparable, normalizeForTyping, stripAccents } from "./text";
+import { evaluateTranslation, matchesTranslation, normalizeComparable, normalizeForTyping, stripAccents } from "./text";
 
 function entry(id: string, source: string, target: string, alternatives: string[] = []): VocabularyEntry {
   return { id, source, target, alternatives, tags: [] };
@@ -191,6 +191,67 @@ describe("typing text rules", () => {
     expect(matchesTranslation("みち", item)).toBe(true);
     expect(matchesTranslation("street", item)).toBe(false);
   });
+
+  test("evaluateTranslation classifies exact matches, near-miss typos, and incorrect answers", () => {
+    const item = entry("m", "house", "maison");
+
+    // Exact match
+    const exact = evaluateTranslation("maison", item);
+    expect(exact.verdict).toBe("exact");
+    expect(exact.distance).toBe(0);
+    expect(exact.similarity).toBe(1.0);
+    expect(exact.submittedAnswer).toBe("maison");
+    expect(exact.correctAnswer).toBe("maison");
+    expect(exact.editDistance).toBe(0);
+    expect(exact.editOperations.every((op) => op.type === "match")).toBe(true);
+
+    // Near-miss transposition with typo tolerance enabled (boolean true or "forgiving")
+    const typoWithTol = evaluateTranslation("maiosn", item, { typoTolerance: true });
+    expect(typoWithTol.verdict).toBe("typo");
+    expect(typoWithTol.distance).toBe(1);
+    expect(typoWithTol.editDistance).toBe(1);
+    expect(typoWithTol.submittedAnswer).toBe("maiosn");
+    expect(typoWithTol.correctAnswer).toBe("maison");
+    expect(typoWithTol.editOperations.some((op) => op.type === "transposition")).toBe(true);
+    expect(matchesTranslation("maiosn", item, { typoTolerance: true })).toBe(true);
+    expect(matchesTranslation("maiosn", item, { typoTolerance: "forgiving" })).toBe(true);
+
+    // Near-miss single deletion with typo tolerance enabled
+    const slip = evaluateTranslation("maiso", item, { typoTolerance: true });
+    expect(slip.verdict).toBe("typo");
+    expect(slip.distance).toBe(1);
+    expect(slip.explanation).toContain("Missing");
+
+    // Strict mode (typoTolerance false or "strict") preserves existing strict evaluation behavior
+    const strictTypo = evaluateTranslation("maiosn", item, { typoTolerance: false });
+    expect(strictTypo.verdict).toBe("incorrect");
+    expect(strictTypo.submittedAnswer).toBe("maiosn");
+    expect(strictTypo.correctAnswer).toBe("maison");
+    expect(strictTypo.editDistance).toBe(1);
+    expect(matchesTranslation("maiosn", item, { typoTolerance: false })).toBe(false);
+    expect(matchesTranslation("maiosn", item, { typoTolerance: "strict" })).toBe(false);
+
+    // Accent handling rules compatibility:
+    const accentItem: VocabularyEntry = {
+      id: "cafe",
+      source: "coffee",
+      target: "café",
+      alternatives: [],
+      tags: [],
+    };
+    // When ignoreAccents: true, "cafe" matches "café" exactly
+    const accentIgnored = evaluateTranslation("cafe", accentItem, { ignoreAccents: true });
+    expect(accentIgnored.verdict).toBe("exact");
+
+    // When ignoreAccents: false (strict accents), "cafe" is NOT forgiven as a typo
+    const accentStrict = evaluateTranslation("cafe", accentItem, { ignoreAccents: false, typoTolerance: true });
+    expect(accentStrict.verdict).toBe("incorrect");
+
+    // Substantial misspelling is always incorrect
+    const incorrect = evaluateTranslation("chambre", item, { typoTolerance: true });
+    expect(incorrect.verdict).toBe("incorrect");
+    expect(matchesTranslation("chambre", item, { typoTolerance: true })).toBe(false);
+  });
 });
 
 describe("Leitner spaced repetition & mistake queue", () => {
@@ -217,6 +278,36 @@ describe("Leitner spaced repetition & mistake queue", () => {
     expect(rec.box).toBe(3);
     expect(rec.consecutiveCorrect).toBe(4);
     expect(rec.totalAttempts).toBe(4);
+  });
+
+  test("updateRetention retains box and preserves streak on near-miss typo", () => {
+    // Initial state: in Box 2 with 2 consecutive correct
+    const current: RetentionRecord = {
+      box: 2,
+      consecutiveCorrect: 2,
+      totalAttempts: 2,
+      lastAttemptCorrect: true,
+    };
+
+    // When answer is a near-miss typo:
+    const afterTypo = updateRetention(current, "typo");
+    expect(afterTypo.box).toBe(2); // retains Box 2 (does not prematurely advance to Box 3)
+    expect(afterTypo.consecutiveCorrect).toBe(2); // streak is preserved (not reset to 0, not incremented)
+    expect(afterTypo.totalAttempts).toBe(3); // attempt is counted
+    expect(afterTypo.lastAttemptCorrect).toBe(true);
+    expect(afterTypo.typoCount).toBe(1);
+
+    // Another typo retains box again and increments typoCount
+    const afterSecondTypo = updateRetention(afterTypo, "typo");
+    expect(afterSecondTypo.box).toBe(2);
+    expect(afterSecondTypo.consecutiveCorrect).toBe(2);
+    expect(afterSecondTypo.typoCount).toBe(2);
+
+    // An exact match after typos advances to Box 3 and increments streak
+    const afterExact = updateRetention(afterSecondTypo, "exact");
+    expect(afterExact.box).toBe(3);
+    expect(afterExact.consecutiveCorrect).toBe(3);
+    expect(afterExact.typoCount).toBe(2);
   });
 
   test("updateRetention resets to Box 0 and clears consecutive streaks on error", () => {

@@ -18,7 +18,14 @@ export function SessionStatsBar({ compact = false }: { compact?: boolean }) {
       ) : (
         <dl className="session-stats">
           <Stat label="Quiz" value={`${stats.quiz.correct}/${stats.quiz.answered}`} />
-          <Stat label="Typing" value={`${stats.typing.correct}/${stats.typing.attempted}`} />
+          <Stat
+            label="Typing"
+            value={
+              stats.typing.typos > 0
+                ? `${stats.typing.correct}/${stats.typing.attempted} (${stats.typing.typos} near-miss${stats.typing.typos === 1 ? "" : "es"})`
+                : `${stats.typing.correct}/${stats.typing.attempted}`
+            }
+          />
           <Stat
             label="Flashcards"
             value={`${stats.flashcards.known} known / ${stats.flashcards.needsPractice} practice`}
