@@ -39,7 +39,6 @@ export function FlashcardsMode({ deck, seed }: { deck: PlayableDeck; seed?: numb
     }
     return buildFlashcardOrder(deck.entries, rng);
     // Stable order during a round; reshuffle() rebuilds when starting a new round or changing size
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deck.entries, rng, useAdaptive]);
 
   const [roundSize, setRoundSize] = useState(() => Math.min(fullOrder.length, MAX_ROUND));

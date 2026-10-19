@@ -284,6 +284,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
         <span className="label">
           Choose the {languageName(deck.targetLanguage)} translation
         </span>
+        <p className="faint">Press 1–{round.options.length} to select, Enter to submit</p>
       </Panel>
 
       <ul className="option-list">
@@ -305,8 +306,8 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
                 aria-pressed={isChosen}
                 disabled={submitted}
                 onClick={() => setSelected(option)}
+                title={`Option ${optIdx + 1}: Press ${optIdx + 1}`}
               >
-                <span aria-hidden="true" className="kbd-badge">[{optIdx + 1}]</span>
                 <span className="option-text lang-text" lang={deck.targetLanguage}>
                   {option}
                 </span>
