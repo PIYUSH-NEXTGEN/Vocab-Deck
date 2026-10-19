@@ -3,7 +3,14 @@ import type { PlayableDeck, VocabularyEntry } from "../../api/types";
 import { buildFlashcardOrder, buildMistakeReviewOrder } from "../engine";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
-import { acceptedAnswers, matchesTranslation } from "../text";
+import {
+  acceptedAnswers,
+  evaluateTranslation,
+  type AlignmentResult,
+  type AnswerVerdict,
+  type CharacterHighlight,
+  type EvaluationResult,
+} from "../text";
 import { fullTranslation, nativeScript } from "../translationDisplay";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
 import { useSession } from "../../session/useSession";
@@ -12,8 +19,11 @@ import { Button } from "../../components/Button";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
 import { RoundSizeField } from "../../components/RoundSizeField";
+import { SegmentedControl } from "../../components/SegmentedControl";
 
-type Result = "correct" | "incorrect" | null;
+export type TypoToleranceMode = "forgiving" | "strict";
+
+type Result = "correct" | "typo" | "incorrect" | null;
 
 /** Max entries a single typing round can contain (full 50-entry deck). */
 const MAX_ROUND = 50;
@@ -56,15 +66,28 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result>(null);
   const [ignoreAccents, setIgnoreAccents] = useState(true);
+  const [typoMode, setTypoMode] = useState<TypoToleranceMode>("forgiving");
+  const [lastEvaluation, setLastEvaluation] = useState<EvaluationResult | null>(null);
   const [roundEvaluations, setRoundEvaluations] = useState<
-    Map<string, { entry: VocabularyEntry; correct: boolean; input: string }>
+    Map<
+      string,
+      {
+        entry: VocabularyEntry;
+        correct: boolean;
+        input: string;
+        verdict: AnswerVerdict;
+        matchedTarget?: string;
+        explanation?: string;
+        alignment?: AlignmentResult;
+      }
+    >
   >(() => new Map());
 
   const entry = order[Math.min(index, order.length - 1)];
   const finished = index >= order.length;
 
   useEffect(() => {
-    if (result === "correct") register(pulse(feedbackRef.current));
+    if (result === "correct" || result === "typo") register(pulse(feedbackRef.current));
     else if (result === "incorrect") register(shake(feedbackRef.current));
   }, [result, register]);
 
@@ -76,6 +99,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     setInput("");
     setError(null);
     setResult(null);
+    setLastEvaluation(null);
   }, [index]);
 
   const changeRoundSize = useCallback(
@@ -88,6 +112,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
       setIndex(0);
       setError(null);
       setResult(null);
+      setLastEvaluation(null);
     },
     [reshuffle],
   );
@@ -112,14 +137,24 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
       return;
     }
     setError(null);
-    const correct = matchesTranslation(input, entry, { ignoreAccents });
-    recordTypingAttempt(correct, entry.id);
+    const evaluation = evaluateTranslation(input, entry, { ignoreAccents, typoTolerance: typoMode });
+    setLastEvaluation(evaluation);
+    const correct = evaluation.verdict !== "incorrect";
+    recordTypingAttempt(correct, entry.id, evaluation.verdict);
     setRoundEvaluations((prev) => {
       const next = new Map(prev);
-      next.set(entry.id, { entry, correct, input });
+      next.set(entry.id, {
+        entry,
+        correct,
+        input,
+        verdict: evaluation.verdict,
+        matchedTarget: evaluation.matchedTarget,
+        explanation: evaluation.explanation,
+        alignment: evaluation.alignment,
+      });
       return next;
     });
-    setResult(correct ? "correct" : "incorrect");
+    setResult(evaluation.verdict === "exact" ? "correct" : evaluation.verdict === "typo" ? "typo" : "incorrect");
   }
 
   function next() {
@@ -133,17 +168,29 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     setIndex(0);
     setError(null);
     setResult(null);
+    setLastEvaluation(null);
   }, [reshuffle]);
 
-  const missedItems = useMemo(
-    () => Array.from(roundEvaluations.values()).filter((item) => !item.correct),
+  const allEvaluations = useMemo(
+    () => Array.from(roundEvaluations.values()),
     [roundEvaluations],
   );
 
-  const correctCount = useMemo(
-    () => Array.from(roundEvaluations.values()).filter((item) => item.correct).length,
-    [roundEvaluations],
+  const exactItems = useMemo(
+    () => allEvaluations.filter((item) => item.verdict === "exact"),
+    [allEvaluations],
   );
+
+  const typoItems = useMemo(
+    () => allEvaluations.filter((item) => item.verdict === "typo"),
+    [allEvaluations],
+  );
+
+  const missedItems = useMemo(
+    () => allEvaluations.filter((item) => item.verdict === "incorrect"),
+    [allEvaluations],
+  );
+
 
   const startMistakeReview = useCallback(() => {
     if (missedItems.length === 0) return;
@@ -154,6 +201,7 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
     setIndex(0);
     setError(null);
     setResult(null);
+    setLastEvaluation(null);
   }, [missedItems, reshuffle]);
 
   if (finished) {
@@ -162,9 +210,42 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
         <Panel className="stack summary">
           <h3>{reviewMistakes ? "Review round complete" : "Typing complete"}</h3>
           <p className="muted">
-            You typed {roundEvaluations.size} translations this round: {correctCount} correct
+            You typed {allEvaluations.length} translations this round: {exactItems.length} exact matches
+            {typoItems.length > 0 ? `, ${typoItems.length} near-misses` : ""}
             {missedItems.length > 0 ? `, ${missedItems.length} incorrect` : ""}.
           </p>
+
+          <div className="review-stats-grid">
+            <div className="review-stat-card">
+              <span className="label">Exact Matches</span>
+              <div className="review-stat-count">{exactItems.length}</div>
+            </div>
+            <div className="review-stat-card">
+              <span className="label">Near-Misses</span>
+              <div className="review-stat-count">{typoItems.length}</div>
+            </div>
+            <div className="review-stat-card">
+              <span className="label">Incorrect</span>
+              <div className="review-stat-count">{missedItems.length}</div>
+            </div>
+          </div>
+
+          {typoItems.length > 0 ? (
+            <div className="stack-tight typo-section">
+              <span className="label">Minor typos accepted ({typoItems.length}):</span>
+              <ul className="typo-list">
+                {typoItems.map((item) => (
+                  <li key={item.entry.id} className="typo-item">
+                    <span>
+                      <strong>{item.entry.source}</strong>: You typed <em>"{item.input}"</em>{" "}
+                      ➔ <span className="typo-correct">{item.matchedTarget ?? item.entry.target}</span>
+                      {item.explanation ? <span className="faint"> ({item.explanation})</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {missedItems.length > 0 ? (
             <div className="stack-tight mistake-section">
@@ -185,11 +266,27 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
                 ))}
               </ul>
             </div>
-          ) : (
+          ) : typoItems.length === 0 ? (
             <p className="notice notice-pill">
               🎉 Flawless typing! Every word this round was typed correctly.
             </p>
-          )}
+          ) : null}
+
+          {exactItems.length > 0 && (typoItems.length > 0 || missedItems.length > 0) ? (
+            <div className="stack-tight exact-section">
+              <span className="label">Exact matches ({exactItems.length}):</span>
+              <ul className="typo-list">
+                {exactItems.map((item) => (
+                  <li key={item.entry.id} className="typo-item">
+                    <span>
+                      <strong>{item.entry.source}</strong>: You typed <em>"{item.input}"</em>{" "}
+                      ➔ <span className="typo-correct">{item.matchedTarget ?? item.entry.target}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="row">
             {missedItems.length > 0 ? (
@@ -274,6 +371,30 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
           <span>Ignore accents and diacritics when checking answers</span>
         </label>
 
+        <div className="stack-tight typo-tolerance-setting">
+          <div className="row row-space">
+            <span className="label">Typo tolerance</span>
+            <label className="visually-hidden">
+              <input
+                type="checkbox"
+                checked={typoMode === "forgiving"}
+                onChange={(event) => setTypoMode(event.target.checked ? "forgiving" : "strict")}
+                aria-label="Typo tolerance"
+              />
+              Typo tolerance
+            </label>
+          </div>
+          <SegmentedControl<TypoToleranceMode>
+            ariaLabel="Typo tolerance mode"
+            value={typoMode}
+            onChange={setTypoMode}
+            options={[
+              { value: "forgiving", label: "Forgiving", hint: "accepts minor slips" },
+              { value: "strict", label: "Strict", hint: "exact spelling required" },
+            ]}
+          />
+        </div>
+
         <div className="typing-feedback stack">
           {error ? (
             <p className="notice notice-error" role="alert">
@@ -283,11 +404,56 @@ export function TypingMode({ deck, seed }: { deck: PlayableDeck; seed?: number }
 
           {result !== null ? (
             <div className="stack" role="status" ref={feedbackRef}>
-              <p className={result === "correct" ? "notice" : "notice notice-error"}>
+              <p
+                className={
+                  result === "correct"
+                    ? "notice"
+                    : result === "typo"
+                      ? "notice notice-warning"
+                      : "notice notice-error"
+                }
+              >
                 {result === "correct"
                   ? `Correct. ${fullTranslation(entry)}`
-                  : `Not quite. Accepted: ${acceptedAnswers(entry).join(", ")}`}
+                  : result === "typo"
+                    ? `Almost! Accepted with typo: you typed "${input}", correct spelling is "${lastEvaluation?.matchedTarget ?? fullTranslation(entry)}".`
+                    : `Not quite. Accepted: ${acceptedAnswers(entry).join(", ")}`}
               </p>
+              {(result === "typo" || (result === "incorrect" && lastEvaluation?.alignment && lastEvaluation.alignment.distance < Infinity)) ? (
+                <div className="typo-diff-panel" aria-label="Spelling comparison">
+                  {lastEvaluation?.explanation && lastEvaluation.explanation !== "Exact match" ? (
+                    <div className="typo-diff-explanation">{lastEvaluation.explanation}</div>
+                  ) : null}
+                  <div className="typo-diff-row">
+                    <span className="label" style={{ minWidth: "80px" }}>You typed:</span>
+                    <span className="typo-diff-chars" aria-label={`You typed ${lastEvaluation?.submittedAnswer ?? input}`}>
+                      {lastEvaluation?.alignment?.userHighlights && lastEvaluation.alignment.userHighlights.length > 0 ? (
+                        lastEvaluation.alignment.userHighlights.map((h: CharacterHighlight, idx: number) => (
+                          <span key={idx} className={`char-badge char-${h.status}`} title={`${h.char}: ${h.status}`}>
+                            {h.char === " " ? "␣" : h.char}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="faint">(empty)</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="typo-diff-row">
+                    <span className="label" style={{ minWidth: "80px" }}>Expected:</span>
+                    <span className="typo-diff-chars" aria-label={`Correct spelling ${lastEvaluation?.correctAnswer ?? entry.target}`}>
+                      {lastEvaluation?.alignment?.targetHighlights && lastEvaluation.alignment.targetHighlights.length > 0 ? (
+                        lastEvaluation.alignment.targetHighlights.map((h: CharacterHighlight, idx: number) => (
+                          <span key={idx} className={`char-badge char-${h.status}`} title={`${h.char}: ${h.status}`}>
+                            {h.char === " " ? "␣" : h.char}
+                          </span>
+                        ))
+                      ) : (
+                        <span>{lastEvaluation?.correctAnswer ?? entry.target}</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
               <div className="row">
                 <Button variant="primary" type="submit">
                   {index + 1 >= order.length ? "See results" : "Next entry"}{" "}

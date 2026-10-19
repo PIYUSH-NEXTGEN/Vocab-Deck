@@ -29,6 +29,8 @@ export function buildFlashcardOrder(entries: readonly VocabularyEntry[], rng: Rn
 
 export type LeitnerBox = 0 | 1 | 2 | 3;
 
+export type RetentionOutcome = boolean | "exact" | "typo" | "incorrect";
+
 export interface RetentionRecord {
   /**
    * Leitner box (0 to 3).
@@ -41,19 +43,25 @@ export interface RetentionRecord {
   consecutiveCorrect: number;
   totalAttempts: number;
   lastAttemptCorrect: boolean;
+  /** Count of accepted near-miss typos */
+  typoCount?: number;
 }
 
 /**
  * Pure state transition function for the Leitner spaced repetition model.
- * Correct answers advance the entry up to Box 3.
- * Incorrect answers reset the entry back to Box 0 for immediate reinforcement.
+ * - Exact correct answers advance the entry up to Box 3.
+ * - Near-miss typos retain the current box (acknowledges recall without premature promotion).
+ * - Incorrect answers reset the entry back to Box 0 for immediate reinforcement.
  */
 export function updateRetention(
   current: RetentionRecord | undefined,
-  correct: boolean,
+  outcome: RetentionOutcome,
 ): RetentionRecord {
   const totalAttempts = (current?.totalAttempts ?? 0) + 1;
-  if (correct) {
+  const hasTypo = current?.typoCount !== undefined || outcome === "typo";
+  const typoCount = (current?.typoCount ?? 0) + (outcome === "typo" ? 1 : 0);
+
+  if (outcome === true || outcome === "exact") {
     const consecutiveCorrect = (current?.consecutiveCorrect ?? 0) + 1;
     const box = Math.min(3, (current?.box ?? 0) + 1) as LeitnerBox;
     return {
@@ -61,13 +69,27 @@ export function updateRetention(
       consecutiveCorrect,
       totalAttempts,
       lastAttemptCorrect: true,
+      ...(hasTypo ? { typoCount } : {}),
     };
   }
+
+  if (outcome === "typo") {
+    // Pedagogical policy: Retain current Leitner box, acknowledge success with a typo
+    return {
+      box: current?.box ?? 0,
+      consecutiveCorrect: current?.consecutiveCorrect ?? 0,
+      totalAttempts,
+      lastAttemptCorrect: true,
+      typoCount,
+    };
+  }
+
   return {
     box: 0,
     consecutiveCorrect: 0,
     totalAttempts,
     lastAttemptCorrect: false,
+    ...(hasTypo ? { typoCount } : {}),
   };
 }
 
