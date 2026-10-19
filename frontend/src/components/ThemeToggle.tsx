@@ -1,4 +1,4 @@
-import { useTheme } from "../theme/ThemeProvider";
+import { useTheme } from "../theme/useTheme";
 
 /** Feather-style sun and moon (MIT), sized to the text and coloured by currentColor. */
 function SunIcon() {

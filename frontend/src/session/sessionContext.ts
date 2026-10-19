@@ -8,6 +8,7 @@
  */
 
 import { createContext } from "react";
+import type { RetentionRecord } from "../game/engine";
 
 export interface FlashcardTally {
   known: number;
@@ -61,14 +62,17 @@ export function isPristineStats(stats: SessionStats): boolean {
 
 export interface SessionApi {
   stats: SessionStats;
+  /** In-memory Leitner retention tracking per entry. */
+  retention: ReadonlyMap<string, RetentionRecord>;
   /** True until the first recorded event, so the UI can show a quiet zero state. */
   isPristine: boolean;
   /** Increments on every restart; use it to remount the active round. */
   epoch: number;
-  recordFlashcardAssessment: (assessment: FlashcardAssessment) => void;
-  recordQuizAnswer: (correct: boolean) => void;
-  recordTypingAttempt: (correct: boolean) => void;
+  recordFlashcardAssessment: (assessment: FlashcardAssessment, entryId?: string) => void;
+  recordQuizAnswer: (correct: boolean, entryId?: string) => void;
+  recordTypingAttempt: (correct: boolean, entryId?: string) => void;
   recordMatchAttempt: (correct: boolean) => void;
+  recordEntryResult: (entryId: string, correct: boolean) => void;
   restart: () => void;
 }
 

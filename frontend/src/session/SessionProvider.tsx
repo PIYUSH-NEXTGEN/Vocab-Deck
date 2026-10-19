@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { updateRetention, type RetentionRecord } from "../game/engine";
 import {
   SessionContext,
   emptyStats,
@@ -10,37 +11,65 @@ import {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const startedAtRef = useRef(Date.now());
   const [stats, setStats] = useState(() => emptyStats(startedAtRef.current));
+  const [retention, setRetention] = useState<Map<string, RetentionRecord>>(() => new Map());
   const [epoch, setEpoch] = useState(0);
 
-  const recordFlashcardAssessment = useCallback((assessment: "known" | "needsPractice") => {
-    setStats((prev) => ({
-      ...prev,
-      flashcards: {
-        ...prev.flashcards,
-        [assessment]: prev.flashcards[assessment] + 1,
-      },
-    }));
+  const recordEntryResult = useCallback((entryId: string, correct: boolean) => {
+    setRetention((prev) => {
+      const next = new Map(prev);
+      const current = next.get(entryId);
+      next.set(entryId, updateRetention(current, correct));
+      return next;
+    });
   }, []);
 
-  const recordQuizAnswer = useCallback((correct: boolean) => {
-    setStats((prev) => ({
-      ...prev,
-      quiz: {
-        correct: prev.quiz.correct + (correct ? 1 : 0),
-        answered: prev.quiz.answered + 1,
-      },
-    }));
-  }, []);
+  const recordFlashcardAssessment = useCallback(
+    (assessment: "known" | "needsPractice", entryId?: string) => {
+      setStats((prev) => ({
+        ...prev,
+        flashcards: {
+          ...prev.flashcards,
+          [assessment]: prev.flashcards[assessment] + 1,
+        },
+      }));
+      if (entryId) {
+        recordEntryResult(entryId, assessment === "known");
+      }
+    },
+    [recordEntryResult],
+  );
 
-  const recordTypingAttempt = useCallback((correct: boolean) => {
-    setStats((prev) => ({
-      ...prev,
-      typing: {
-        correct: prev.typing.correct + (correct ? 1 : 0),
-        attempted: prev.typing.attempted + 1,
-      },
-    }));
-  }, []);
+  const recordQuizAnswer = useCallback(
+    (correct: boolean, entryId?: string) => {
+      setStats((prev) => ({
+        ...prev,
+        quiz: {
+          correct: prev.quiz.correct + (correct ? 1 : 0),
+          answered: prev.quiz.answered + 1,
+        },
+      }));
+      if (entryId) {
+        recordEntryResult(entryId, correct);
+      }
+    },
+    [recordEntryResult],
+  );
+
+  const recordTypingAttempt = useCallback(
+    (correct: boolean, entryId?: string) => {
+      setStats((prev) => ({
+        ...prev,
+        typing: {
+          correct: prev.typing.correct + (correct ? 1 : 0),
+          attempted: prev.typing.attempted + 1,
+        },
+      }));
+      if (entryId) {
+        recordEntryResult(entryId, correct);
+      }
+    },
+    [recordEntryResult],
+  );
 
   const recordMatchAttempt = useCallback((correct: boolean) => {
     setStats((prev) => ({
@@ -55,27 +84,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const restart = useCallback(() => {
     startedAtRef.current = Date.now();
     setStats(emptyStats(startedAtRef.current));
+    setRetention(new Map());
     setEpoch((value) => value + 1); // remount the active mode so the round restarts
   }, []);
 
   const value = useMemo<SessionApi>(
     () => ({
       stats,
+      retention,
       isPristine: isPristineStats(stats),
       epoch,
       recordFlashcardAssessment,
       recordQuizAnswer,
       recordTypingAttempt,
       recordMatchAttempt,
+      recordEntryResult,
       restart,
     }),
     [
       stats,
+      retention,
       epoch,
       recordFlashcardAssessment,
       recordQuizAnswer,
       recordTypingAttempt,
       recordMatchAttempt,
+      recordEntryResult,
       restart,
     ],
   );
