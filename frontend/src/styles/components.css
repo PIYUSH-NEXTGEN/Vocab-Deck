@@ -2016,3 +2016,49 @@ select:focus {
   font-family: var(--font-display, inherit);
 }
 
+.quiz-settings {
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border-hairline);
+}
+
+.quiz-confusion-insight {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper-sunken);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-deep);
+  font-size: 0.9rem;
+}
+
+.confusion-section {
+  border: 2px dashed var(--border);
+  padding: var(--space-3);
+  background: var(--paper-raised);
+}
+
+.confusion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.confusion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  padding: 0.25rem var(--space-2);
+  border-left: 3px solid var(--accent-deep);
+  background: var(--paper-sunken);
+}
+
+.confusion-meta {
+  white-space: nowrap;
+}
+

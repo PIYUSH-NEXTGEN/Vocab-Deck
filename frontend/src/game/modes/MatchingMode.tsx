@@ -148,7 +148,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
     setSelectedTargetId(pairId);
     register(pop(element));
     if (pairId === selectedSourceId) {
-      recordMatchAttempt(true);
+      recordMatchAttempt(true, selectedSourceId, pairId);
       const nextCompleted = new Set(completed);
       nextCompleted.add(pairId);
       setCompleted(nextCompleted);
@@ -168,7 +168,7 @@ export function MatchingMode({ deck, seed }: { deck: PlayableDeck; seed?: number
       }
       return;
     }
-    recordMatchAttempt(false);
+    recordMatchAttempt(false, selectedSourceId, pairId);
     setSelectedSourceId(null);
     setIncorrectTargetId(pairId);
     setFeedback({ tone: "incorrect", message: "Not a pair. Try again." });
