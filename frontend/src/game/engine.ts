@@ -158,6 +158,8 @@ export interface QuizRound {
 
 export interface QuizBuildOptions {
   difficulty?: QuizDifficulty;
+  /** Deck the entries belong to; scopes confusion history to this deck. */
+  deckId?: string;
   confusionMatrix?: ConfusionMatrix;
   retention?: ReadonlyMap<string, RetentionRecord>;
   prioritizeConfused?: boolean;
@@ -180,6 +182,7 @@ export function buildQuizRounds(
 ): QuizRound[] {
   const maxOptions = 4;
   const difficulty = buildOptions.difficulty ?? "adaptive";
+  const deckId = buildOptions.deckId;
   const confusionMatrix = buildOptions.confusionMatrix;
   const retention = buildOptions.retention;
   const rounds: QuizRound[] = [];
@@ -201,11 +204,11 @@ export function buildQuizRounds(
   }
 
   let orderedQuestions = shuffle(targetQuestions, rng);
-  if (buildOptions.prioritizeConfused && confusionMatrix && confusionMatrix.size > 0) {
+  if (buildOptions.prioritizeConfused && deckId && confusionMatrix && confusionMatrix.size > 0) {
     orderedQuestions = [...orderedQuestions].sort(
       (a, b) =>
-        getEntryConfusionTotal(confusionMatrix, b.id) -
-        getEntryConfusionTotal(confusionMatrix, a.id),
+        getEntryConfusionTotal(confusionMatrix, deckId ?? "", b.id) -
+        getEntryConfusionTotal(confusionMatrix, deckId ?? "", a.id),
     );
   }
 
@@ -228,6 +231,7 @@ export function buildQuizRounds(
       maxOptions - 1,
       {
         difficulty,
+        deckId,
         confusionMatrix,
         retentionRecord: retention?.get(entry.id),
         rng,

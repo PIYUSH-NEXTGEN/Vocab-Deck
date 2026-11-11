@@ -51,7 +51,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const recordQuizAnswer = useCallback(
-    (correct: boolean, entryId?: string, chosenEntryId?: string) => {
+    (correct: boolean, entryId?: string, chosenEntryId?: string, deckId?: string) => {
       setStats((prev) => ({
         ...prev,
         quiz: {
@@ -61,8 +61,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }));
       if (entryId) {
         recordEntryResult(entryId, correct);
-        if (!correct && chosenEntryId && chosenEntryId !== entryId) {
-          setConfusionMatrix((prev) => recordConfusion(prev, entryId, chosenEntryId, "quiz"));
+        if (deckId && !correct && chosenEntryId && chosenEntryId !== entryId) {
+          setConfusionMatrix((prev) =>
+            recordConfusion(prev, deckId, entryId, chosenEntryId, "quiz"),
+          );
         }
       }
     },
@@ -94,7 +96,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const recordMatchAttempt = useCallback(
-    (correct: boolean, expectedEntryId?: string, chosenEntryId?: string) => {
+    (correct: boolean, expectedEntryId?: string, chosenEntryId?: string, deckId?: string) => {
       setStats((prev) => ({
         ...prev,
         matching: {
@@ -102,9 +104,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           pairsCompleted: prev.matching.pairsCompleted + (correct ? 1 : 0),
         },
       }));
-      if (!correct && expectedEntryId && chosenEntryId && expectedEntryId !== chosenEntryId) {
+      if (
+        deckId &&
+        !correct &&
+        expectedEntryId &&
+        chosenEntryId &&
+        expectedEntryId !== chosenEntryId
+      ) {
         setConfusionMatrix((prev) =>
-          recordConfusion(prev, expectedEntryId, chosenEntryId, "matching"),
+          recordConfusion(prev, deckId, expectedEntryId, chosenEntryId, "matching"),
         );
       }
     },

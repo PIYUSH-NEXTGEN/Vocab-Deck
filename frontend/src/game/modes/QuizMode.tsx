@@ -59,6 +59,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   const allRounds = useMemo(() => {
     const buildOptions = {
       difficulty: reviewState?.scope === "confusions" ? "challenging" : difficulty,
+      deckId: deck.id,
       confusionMatrix: roundConfusionSnapshot,
       retention: roundRetentionSnapshot,
       prioritizeConfused: reviewState?.scope === "confusions",
@@ -73,7 +74,15 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       );
     }
     return buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS, undefined, buildOptions);
-  }, [deck.entries, difficulty, reviewState, rng, roundConfusionSnapshot, roundRetentionSnapshot]);
+  }, [
+    deck.entries,
+    deck.id,
+    difficulty,
+    reviewState,
+    rng,
+    roundConfusionSnapshot,
+    roundRetentionSnapshot,
+  ]);
 
   const maxQuestions = allRounds.length;
   const [questionCount, setQuestionCount] = useState(maxQuestions);
@@ -163,7 +172,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     const isCorrect = selected === round.answer;
     const chosenEntryId = isCorrect ? undefined : round.distractorInsights?.[selected]?.entryId;
     setSubmitted(true);
-    recordQuizAnswer(isCorrect, round.entry.id, chosenEntryId);
+    recordQuizAnswer(isCorrect, round.entry.id, chosenEntryId, deck.id);
     setRoundEvaluations((prev) => {
       const next = new Map(prev);
       next.set(round.entry.id, {
@@ -174,7 +183,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       });
       return next;
     });
-  }, [recordQuizAnswer, round, selected, submitted]);
+  }, [deck.id, recordQuizAnswer, round, selected, submitted]);
 
   const next = useCallback(() => {
     setSelected(null);
@@ -239,18 +248,18 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   );
 
   const topConfusedPairs = useMemo(
-    () => getTopConfusedPairs(confusionMatrix, deck.entries, 5),
-    [confusionMatrix, deck.entries],
+    () => getTopConfusedPairs(confusionMatrix, deck.id, deck.entries, 5),
+    [confusionMatrix, deck.id, deck.entries],
   );
 
   const confusableEntries = useMemo(() => {
-    const ids = getConfusableEntryIds(confusionMatrix);
+    const ids = getConfusableEntryIds(confusionMatrix, deck.id);
     if (ids.length === 0) return [];
     const byId = new Map(deck.entries.map((entry) => [entry.id, entry]));
     return ids
       .map((id) => byId.get(id))
       .filter((entry): entry is VocabularyEntry => entry !== undefined);
-  }, [confusionMatrix, deck.entries]);
+  }, [confusionMatrix, deck.id, deck.entries]);
 
   const startMistakeReview = useCallback(() => {
     if (missedItems.length === 0) return;
@@ -377,7 +386,7 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
       ? round.distractorInsights?.[selected]
       : undefined;
   const livePairConfusionCount = selectedInsight
-    ? getPairConfusionCount(confusionMatrix, round.entry.id, selectedInsight.entryId)
+    ? getPairConfusionCount(confusionMatrix, deck.id, round.entry.id, selectedInsight.entryId)
     : 0;
 
   return (

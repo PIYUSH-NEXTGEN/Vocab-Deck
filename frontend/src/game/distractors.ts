@@ -49,6 +49,8 @@ export interface RetentionLike {
 }
 
 export interface ConfusionEdge {
+  /** Deck the pair belongs to; entry ids are only unique within a deck. */
+  deckId: string;
   /** Lexicographically smaller entry id. */
   entryA: string;
   /** Lexicographically larger entry id. */
@@ -298,8 +300,10 @@ export function prepareEntryFeatures(entry: VocabularyEntry): PreparedEntryFeatu
 
 /* ---------- Confusion Matrix (strictly in-memory) ---------- */
 
-export function canonicalPairKey(idA: string, idB: string): string {
-  return idA < idB ? `${idA}\u0000${idB}` : `${idB}\u0000${idA}`;
+export function canonicalPairKey(deckId: string, idA: string, idB: string): string {
+  const [entryA, entryB] =
+    idA < idB ? [idA, idB] : [idB, idA];
+  return `${deckId}\u0000${entryA}\u0000${entryB}`;
 }
 
 export function createConfusionMatrix(): ConfusionMatrix {
@@ -309,19 +313,23 @@ export function createConfusionMatrix(): ConfusionMatrix {
 /**
  * Record an in-memory confusion edge when a learner chooses `chosenEntryId`
  * while being tested on `expectedEntryId`.
+ *
+ * `deckId` scopes the edge: entry ids are only unique within a deck, so the
+ * same id in two decks must never share confusion history.
  */
 export function recordConfusion(
   matrix: ConfusionMatrix,
+  deckId: string,
   expectedEntryId: string,
   chosenEntryId: string,
   source: ConfusionSource,
   timestamp: number = Date.now(),
 ): ConfusionMatrix {
-  if (!expectedEntryId || !chosenEntryId || expectedEntryId === chosenEntryId) {
+  if (!deckId || !expectedEntryId || !chosenEntryId || expectedEntryId === chosenEntryId) {
     return matrix;
   }
 
-  const key = canonicalPairKey(expectedEntryId, chosenEntryId);
+  const key = canonicalPairKey(deckId, expectedEntryId, chosenEntryId);
   const [entryA, entryB] =
     expectedEntryId < chosenEntryId
       ? [expectedEntryId, chosenEntryId]
@@ -342,6 +350,7 @@ export function recordConfusion(
         lastConfusedAt: Math.max(existing.lastConfusedAt, timestamp),
       }
     : {
+        deckId,
         entryA,
         entryB,
         aToB: isExpectedA ? 1 : 0,
@@ -361,21 +370,23 @@ export function recordConfusion(
 
 export function getPairConfusionCount(
   matrix: ConfusionMatrix | undefined,
+  deckId: string,
   idA: string,
   idB: string,
 ): number {
-  if (!matrix || !idA || !idB || idA === idB) return 0;
-  return matrix.get(canonicalPairKey(idA, idB))?.total ?? 0;
+  if (!matrix || !deckId || !idA || !idB || idA === idB) return 0;
+  return matrix.get(canonicalPairKey(deckId, idA, idB))?.total ?? 0;
 }
 
 export function getEntryConfusionTotal(
   matrix: ConfusionMatrix | undefined,
+  deckId: string,
   entryId: string,
 ): number {
-  if (!matrix || !entryId) return 0;
+  if (!matrix || !deckId || !entryId) return 0;
   let total = 0;
   for (const edge of matrix.values()) {
-    if (edge.entryA === entryId || edge.entryB === entryId) {
+    if (edge.deckId === deckId && (edge.entryA === entryId || edge.entryB === entryId)) {
       total += edge.total;
     }
   }
@@ -387,10 +398,11 @@ export function getEntryConfusionTotal(
  */
 export function getTopConfusedPairs(
   matrix: ConfusionMatrix | undefined,
+  deckId: string,
   entries: readonly VocabularyEntry[],
   limit = 10,
 ): ConfusionPairSummary[] {
-  if (!matrix || matrix.size === 0 || limit <= 0) return [];
+  if (!matrix || !deckId || matrix.size === 0 || limit <= 0) return [];
 
   const byId = new Map<string, VocabularyEntry>();
   for (const entry of entries) {
@@ -399,6 +411,7 @@ export function getTopConfusedPairs(
 
   const summaries: ConfusionPairSummary[] = [];
   for (const edge of matrix.values()) {
+    if (edge.deckId !== deckId) continue;
     const entryA = byId.get(edge.entryA);
     const entryB = byId.get(edge.entryB);
     if (!entryA || !entryB) continue;
@@ -425,11 +438,15 @@ export function getTopConfusedPairs(
 /**
  * Extract unique entry IDs involved in at least one confusion, ordered by total confusion severity.
  */
-export function getConfusableEntryIds(matrix: ConfusionMatrix | undefined): string[] {
-  if (!matrix || matrix.size === 0) return [];
+export function getConfusableEntryIds(
+  matrix: ConfusionMatrix | undefined,
+  deckId: string,
+): string[] {
+  if (!matrix || !deckId || matrix.size === 0) return [];
 
   const totals = new Map<string, number>();
   for (const edge of matrix.values()) {
+    if (edge.deckId !== deckId) continue;
     totals.set(edge.entryA, (totals.get(edge.entryA) ?? 0) + edge.total);
     totals.set(edge.entryB, (totals.get(edge.entryB) ?? 0) + edge.total);
   }
@@ -443,6 +460,8 @@ export function getConfusableEntryIds(matrix: ConfusionMatrix | undefined): stri
 
 export interface DistractorScoringContext {
   difficulty?: QuizDifficulty;
+  /** Deck whose confusion history applies to `question` and `candidate`. */
+  deckId?: string;
   confusionMatrix?: ConfusionMatrix;
   retentionRecord?: RetentionLike;
   /** Optional precomputed features for question and candidate to avoid repeat O(L) parsing. */
@@ -538,7 +557,12 @@ export function scoreDistractor(
     ),
   );
 
-  const confusionCount = getPairConfusionCount(context.confusionMatrix, question.id, candidate.id);
+  const confusionCount = getPairConfusionCount(
+    context.confusionMatrix,
+    context.deckId ?? "",
+    question.id,
+    candidate.id,
+  );
   const confusionSignal =
     confusionCount > 0 ? Math.min(1, 0.55 + 0.15 * confusionCount) : 0;
 
@@ -575,6 +599,8 @@ export function scoreDistractor(
 
 export interface SelectDistractorsOptions {
   difficulty?: QuizDifficulty;
+  /** Deck whose confusion history is used for ranking. */
+  deckId?: string;
   confusionMatrix?: ConfusionMatrix;
   retentionRecord?: RetentionLike;
   rng?: () => number;
@@ -594,6 +620,7 @@ function prefilterCandidates(
   qFeat: PreparedEntryFeatures,
   preparedCandidates: ReadonlyMap<string, PreparedEntryFeatures> | undefined,
   difficulty: QuizDifficulty,
+  deckId: string | undefined,
   confusionMatrix: ConfusionMatrix | undefined,
   retentionRecord: RetentionLike | undefined,
   rng: () => number,
@@ -606,7 +633,12 @@ function prefilterCandidates(
   const rest: { candidate: VocabularyEntry; coarseScore: number; tie: number }[] = [];
 
   for (const candidate of candidates) {
-    const confusionCount = getPairConfusionCount(confusionMatrix, question.id, candidate.id);
+    const confusionCount = getPairConfusionCount(
+      confusionMatrix,
+      deckId ?? "",
+      question.id,
+      candidate.id,
+    );
     if (confusionCount > 0) {
       mustKeep.push(candidate);
       continue;
@@ -665,6 +697,7 @@ export function selectSmartDistractors(
     qFeat,
     options.preparedCandidates,
     difficulty,
+    options.deckId,
     options.confusionMatrix,
     options.retentionRecord,
     rng,
@@ -674,6 +707,7 @@ export function selectSmartDistractors(
     const cFeat = options.preparedCandidates?.get(candidate.id);
     const insight = scoreDistractor(question, candidate, {
       difficulty,
+      deckId: options.deckId,
       confusionMatrix: options.confusionMatrix,
       retentionRecord: options.retentionRecord,
       preparedQuestion: qFeat,

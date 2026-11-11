@@ -66,39 +66,65 @@ describe("phoneticSkeleton and linguistic primitives", () => {
 });
 
 describe("confusion matrix tracking", () => {
+  const deck = "deck-a";
+
   test("tracks bidirectional counts, directionality, and source breakdown without mutation", () => {
     const empty = createConfusionMatrix();
     expect(empty.size).toBe(0);
 
-    // Self-confusion and missing IDs are ignored safely.
-    expect(recordConfusion(empty, "haus", "haus", "quiz", 100)).toBe(empty);
-    expect(recordConfusion(empty, "", "maus", "quiz", 100)).toBe(empty);
+    // Self-confusion, missing IDs, and missing deck scope are ignored safely.
+    expect(recordConfusion(empty, deck, "haus", "haus", "quiz", 100)).toBe(empty);
+    expect(recordConfusion(empty, deck, "", "maus", "quiz", 100)).toBe(empty);
+    expect(recordConfusion(empty, "", "haus", "maus", "quiz", 100)).toBe(empty);
 
-    const m1 = recordConfusion(empty, "haus", "maus", "quiz", 100);
+    const m1 = recordConfusion(empty, deck, "haus", "maus", "quiz", 100);
     expect(empty.size).toBe(0);
-    expect(getPairConfusionCount(m1, "haus", "maus")).toBe(1);
-    expect(getPairConfusionCount(m1, "maus", "haus")).toBe(1);
-    expect(getEntryConfusionTotal(m1, "haus")).toBe(1);
-    expect(getEntryConfusionTotal(m1, "maus")).toBe(1);
+    expect(getPairConfusionCount(m1, deck, "haus", "maus")).toBe(1);
+    expect(getPairConfusionCount(m1, deck, "maus", "haus")).toBe(1);
+    expect(getEntryConfusionTotal(m1, deck, "haus")).toBe(1);
+    expect(getEntryConfusionTotal(m1, deck, "maus")).toBe(1);
 
-    const m2 = recordConfusion(m1, "maus", "haus", "matching", 200);
-    expect(getPairConfusionCount(m2, "haus", "maus")).toBe(2);
+    const m2 = recordConfusion(m1, deck, "maus", "haus", "matching", 200);
+    expect(getPairConfusionCount(m2, deck, "haus", "maus")).toBe(2);
 
     const entries = [
       makeEntry("haus", "das Haus", "the house"),
       makeEntry("maus", "die Maus", "the mouse"),
       makeEntry("auto", "das Auto", "the car"),
     ];
-    const m3 = recordConfusion(m2, "auto", "maus", "quiz", 300);
+    const m3 = recordConfusion(m2, deck, "auto", "maus", "quiz", 300);
 
-    const pairs = getTopConfusedPairs(m3, entries, 5);
+    const pairs = getTopConfusedPairs(m3, deck, entries, 5);
     expect(pairs).toHaveLength(2);
     expect(pairs[0].total).toBe(2);
     expect(pairs[0].sources).toEqual({ quiz: 1, matching: 1 });
     expect(pairs[1].total).toBe(1);
 
     // Highest severity total goes to "maus" (involved in 3 total events)
-    expect(getConfusableEntryIds(m3)[0]).toBe("maus");
+    expect(getConfusableEntryIds(m3, deck)[0]).toBe("maus");
+  });
+
+  test("isolates the same entry ids across decks", () => {
+    const enFr = [
+      makeEntry("water", "water", "eau"),
+      makeEntry("bread", "bread", "pain"),
+    ];
+    // The en-de deck reuses the same entry ids for different translations.
+    const enDe = [
+      makeEntry("water", "water", "Wasser"),
+      makeEntry("bread", "bread", "Brot"),
+    ];
+
+    const matrix = recordConfusion(createConfusionMatrix(), "en-fr", "water", "bread", "quiz", 100);
+
+    expect(getPairConfusionCount(matrix, "en-fr", "water", "bread")).toBe(1);
+    expect(getPairConfusionCount(matrix, "en-de", "water", "bread")).toBe(0);
+    expect(getEntryConfusionTotal(matrix, "en-fr", "water")).toBe(1);
+    expect(getEntryConfusionTotal(matrix, "en-de", "water")).toBe(0);
+    expect(getTopConfusedPairs(matrix, "en-fr", enFr, 5)).toHaveLength(1);
+    expect(getTopConfusedPairs(matrix, "en-de", enDe, 5)).toEqual([]);
+    expect(getConfusableEntryIds(matrix, "en-fr")).toEqual(["water", "bread"].sort());
+    expect(getConfusableEntryIds(matrix, "en-de")).toEqual([]);
   });
 });
 
@@ -158,7 +184,13 @@ describe("smart distractor scoring and difficulty strategies", () => {
 
   test("previously confused entries are prioritized even when lexically distant on huge decks", () => {
     const confusedDistant = makeEntry("distant", "fern", "extremely distant mountain horizon");
-    const matrix = recordConfusion(createConfusionMatrix(), target.id, confusedDistant.id, "matching");
+    const matrix = recordConfusion(
+      createConfusionMatrix(),
+      "deck-smart",
+      target.id,
+      confusedDistant.id,
+      "matching",
+    );
 
     const hugePool: VocabularyEntry[] = [
       confusedDistant,
@@ -169,6 +201,7 @@ describe("smart distractor scoring and difficulty strategies", () => {
 
     const selected = selectSmartDistractors(target, hugePool, 3, {
       difficulty: "challenging",
+      deckId: "deck-smart",
       confusionMatrix: matrix,
       rng: seededRng(7),
     });
@@ -207,10 +240,11 @@ describe("smart distractor scoring and difficulty strategies", () => {
       makeEntry("c", "der Baum", "tree"),
       makeEntry("d", "das Brot", "bread"),
     ];
-    const matrix = recordConfusion(createConfusionMatrix(), "b", "c", "quiz");
+    const matrix = recordConfusion(createConfusionMatrix(), "deck-review", "b", "c", "quiz");
 
     const rounds = buildQuizRounds(entries, seededRng(3), 4, entries, {
       difficulty: "challenging",
+      deckId: "deck-review",
       confusionMatrix: matrix,
       prioritizeConfused: true,
     });

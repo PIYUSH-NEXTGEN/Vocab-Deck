@@ -4,10 +4,12 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { PlayableDeck } from "../api/types";
 import { SessionProvider } from "../session/SessionProvider";
+import { useSession } from "../session/useSession";
 import { SessionStatsBar } from "../components/SessionStatsBar";
 import { QuizMode } from "../game/modes/QuizMode";
 import { MatchingMode } from "../game/modes/MatchingMode";
 import { buildQuizRounds, seededRng } from "../game/engine";
+import { getPairConfusionCount } from "../game/distractors";
 
 const SMART_DECK: PlayableDeck = {
   id: "smart-quiz-test",
@@ -152,6 +154,103 @@ describe("QuizMode smart distractors & confusion engine", () => {
     fireEvent.click(practiceBtn);
 
     expect(screen.getByText(/Review Question 1 of 2/i)).toBeInTheDocument();
+  });
+
+  test("confusion history is scoped per deck even when entry ids are reused", () => {
+    function Probe() {
+      const { confusionMatrix, recordQuizAnswer } = useSession();
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => recordQuizAnswer(false, "water", "bread", "en-fr")}
+          >
+            Record French confusion
+          </button>
+          <output data-testid="confusions-en-fr">
+            {getPairConfusionCount(confusionMatrix, "en-fr", "water", "bread")}
+          </output>
+          <output data-testid="confusions-en-de">
+            {getPairConfusionCount(confusionMatrix, "en-de", "water", "bread")}
+          </output>
+        </div>
+      );
+    }
+
+    renderInSession(<Probe />);
+    fireEvent.click(screen.getByRole("button", { name: "Record French confusion" }));
+
+    // en-fr and en-de reuse the entry ids "water"/"bread", but only en-fr recorded a mistake.
+    expect(screen.getByTestId("confusions-en-fr")).toHaveTextContent("1");
+    expect(screen.getByTestId("confusions-en-de")).toHaveTextContent("0");
+  });
+
+  test("does not surface another deck's confusions when entry ids are reused", () => {
+    const frenchDeck: PlayableDeck = {
+      id: "scope-fr",
+      name: "French",
+      description: "Shared ids, French translations",
+      sourceLanguage: "en",
+      targetLanguage: "fr",
+      entryCount: 2,
+      origin: "custom",
+      entries: [
+        { id: "water", source: "water", target: "eau", alternatives: [], tags: ["noun"] },
+        { id: "bread", source: "bread", target: "pain", alternatives: [], tags: ["noun"] },
+      ],
+    };
+    const germanDeck: PlayableDeck = {
+      id: "scope-de",
+      name: "German",
+      description: "The same entry ids with different German translations",
+      sourceLanguage: "en",
+      targetLanguage: "de",
+      entryCount: 2,
+      origin: "custom",
+      entries: [
+        { id: "water", source: "water", target: "Wasser", alternatives: [], tags: ["noun"] },
+        { id: "bread", source: "bread", target: "Brot", alternatives: [], tags: ["noun"] },
+      ],
+    };
+
+    function DeckSwitchHarness() {
+      const [deck, setDeck] = useState(frenchDeck);
+      return (
+        <div>
+          <button type="button" onClick={() => setDeck(germanDeck)}>
+            Switch deck
+          </button>
+          <QuizMode key={deck.id} deck={deck} seed={5} />
+        </div>
+      );
+    }
+
+    renderInSession(<DeckSwitchHarness />);
+
+    // Make a mistake in the French deck, recording a confusion for "water"/"bread".
+    const frenchRounds = buildQuizRounds(frenchDeck.entries, seededRng(5));
+    const wrongFrenchOption = screen
+      .getAllByRole("button")
+      .find(
+        (button) =>
+          frenchRounds[0].options.includes(button.textContent ?? "") &&
+          button.textContent !== frenchRounds[0].answer,
+      );
+    expect(wrongFrenchOption).toBeDefined();
+    fireEvent.click(wrongFrenchOption!);
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+
+    // The German deck reuses the same ids; its summary must not inherit that confusion.
+    fireEvent.click(screen.getByRole("button", { name: "Switch deck" }));
+    const germanRounds = buildQuizRounds(germanDeck.entries, seededRng(5));
+    for (let i = 0; i < germanRounds.length; i += 1) {
+      fireEvent.click(screen.getByRole("button", { name: germanRounds[i].answer }));
+      fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+      fireEvent.click(screen.getByRole("button", { name: /next question|see results/i }));
+    }
+
+    expect(screen.getByRole("heading", { name: "Quiz complete" })).toBeInTheDocument();
+    expect(screen.queryByText(/Confusable word pairs this session/i)).not.toBeInTheDocument();
   });
 
   test("session Restart clears confusion history completely", () => {

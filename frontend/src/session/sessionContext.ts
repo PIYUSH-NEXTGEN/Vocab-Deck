@@ -68,16 +68,29 @@ export interface SessionApi {
   stats: SessionStats;
   /** In-memory Leitner retention tracking per entry. */
   retention: ReadonlyMap<string, RetentionRecord>;
-  /** In-memory bidirectional word-pair confusion matrix across Quiz & Matching. */
+  /**
+   * In-memory bidirectional word-pair confusion matrix across Quiz & Matching.
+   * Edges are scoped by deck id because entry ids are only unique per deck.
+   */
   confusionMatrix: ConfusionMatrix;
   /** True until the first recorded event, so the UI can show a quiet zero state. */
   isPristine: boolean;
   /** Increments on every restart; use it to remount the active round. */
   epoch: number;
   recordFlashcardAssessment: (assessment: FlashcardAssessment, entryId?: string) => void;
-  recordQuizAnswer: (correct: boolean, entryId?: string, chosenEntryId?: string) => void;
+  recordQuizAnswer: (
+    correct: boolean,
+    entryId?: string,
+    chosenEntryId?: string,
+    deckId?: string,
+  ) => void;
   recordTypingAttempt: (correct: boolean, entryId?: string, outcome?: "exact" | "typo" | "incorrect") => void;
-  recordMatchAttempt: (correct: boolean, expectedEntryId?: string, chosenEntryId?: string) => void;
+  recordMatchAttempt: (
+    correct: boolean,
+    expectedEntryId?: string,
+    chosenEntryId?: string,
+    deckId?: string,
+  ) => void;
   recordEntryResult: (entryId: string, outcome: boolean | "exact" | "typo" | "incorrect") => void;
   restart: () => void;
 }
