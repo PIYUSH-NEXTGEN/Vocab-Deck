@@ -1,4 +1,9 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createConfusionMatrix,
+  recordConfusion,
+  type ConfusionMatrix,
+} from "../game/distractors";
 import { updateRetention, type RetentionRecord } from "../game/engine";
 import {
   SessionContext,
@@ -12,6 +17,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const startedAtRef = useRef(Date.now());
   const [stats, setStats] = useState(() => emptyStats(startedAtRef.current));
   const [retention, setRetention] = useState<Map<string, RetentionRecord>>(() => new Map());
+  const [confusionMatrix, setConfusionMatrix] = useState<ConfusionMatrix>(() =>
+    createConfusionMatrix(),
+  );
   const [epoch, setEpoch] = useState(0);
 
   const recordEntryResult = useCallback(
@@ -43,7 +51,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const recordQuizAnswer = useCallback(
-    (correct: boolean, entryId?: string) => {
+    (correct: boolean, entryId?: string, chosenEntryId?: string) => {
       setStats((prev) => ({
         ...prev,
         quiz: {
@@ -53,6 +61,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }));
       if (entryId) {
         recordEntryResult(entryId, correct);
+        if (!correct && chosenEntryId && chosenEntryId !== entryId) {
+          setConfusionMatrix((prev) => recordConfusion(prev, entryId, chosenEntryId, "quiz"));
+        }
       }
     },
     [recordEntryResult],
@@ -82,20 +93,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [recordEntryResult],
   );
 
-  const recordMatchAttempt = useCallback((correct: boolean) => {
-    setStats((prev) => ({
-      ...prev,
-      matching: {
-        attempts: prev.matching.attempts + 1,
-        pairsCompleted: prev.matching.pairsCompleted + (correct ? 1 : 0),
-      },
-    }));
-  }, []);
+  const recordMatchAttempt = useCallback(
+    (correct: boolean, expectedEntryId?: string, chosenEntryId?: string) => {
+      setStats((prev) => ({
+        ...prev,
+        matching: {
+          attempts: prev.matching.attempts + 1,
+          pairsCompleted: prev.matching.pairsCompleted + (correct ? 1 : 0),
+        },
+      }));
+      if (!correct && expectedEntryId && chosenEntryId && expectedEntryId !== chosenEntryId) {
+        setConfusionMatrix((prev) =>
+          recordConfusion(prev, expectedEntryId, chosenEntryId, "matching"),
+        );
+      }
+    },
+    [],
+  );
 
   const restart = useCallback(() => {
     startedAtRef.current = Date.now();
     setStats(emptyStats(startedAtRef.current));
     setRetention(new Map());
+    setConfusionMatrix(createConfusionMatrix());
     setEpoch((value) => value + 1); // remount the active mode so the round restarts
   }, []);
 
@@ -103,6 +123,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     () => ({
       stats,
       retention,
+      confusionMatrix,
       isPristine: isPristineStats(stats),
       epoch,
       recordFlashcardAssessment,
@@ -115,6 +136,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [
       stats,
       retention,
+      confusionMatrix,
       epoch,
       recordFlashcardAssessment,
       recordQuizAnswer,

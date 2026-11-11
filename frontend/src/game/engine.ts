@@ -14,6 +14,15 @@
  */
 
 import type { VocabularyEntry } from "../api/types";
+import {
+  getEntryConfusionTotal,
+  prepareEntryFeatures,
+  selectSmartDistractors,
+  type ConfusionMatrix,
+  type DistractorInsight,
+  type PreparedEntryFeatures,
+  type QuizDifficulty,
+} from "./distractors";
 import { createRng, shuffle, type Rng } from "./rng";
 
 export const MAX_QUIZ_ROUNDS = 50;
@@ -143,13 +152,23 @@ export interface QuizRound {
   /** Distinct option strings; always contains the answer. */
   options: string[];
   answer: string;
+  /** Similarity & confusion diagnostics keyed by distractor option text. */
+  distractorInsights?: Record<string, DistractorInsight>;
+}
+
+export interface QuizBuildOptions {
+  difficulty?: QuizDifficulty;
+  confusionMatrix?: ConfusionMatrix;
+  retention?: ReadonlyMap<string, RetentionRecord>;
+  prioritizeConfused?: boolean;
 }
 
 /**
  * Build multiple-choice rounds. A round exists only when at least two distinct
- * options can be formed without fabricating vocabulary. Distractors are other
- * entries' translations, excluding anything that could pass for an answer.
- * If questionEntries is provided, questions are chosen from that subset
+ * options can be formed without fabricating vocabulary. Distractors are ranked
+ * by orthographic, phonetic, tag, and session-confusion signals according to
+ * `buildOptions.difficulty`, excluding anything that could pass for an answer.
+ * If `questionEntries` is provided, questions are chosen from that subset
  * while distractors can be drawn from all available entries.
  */
 export function buildQuizRounds(
@@ -157,43 +176,68 @@ export function buildQuizRounds(
   rng: Rng,
   maxRounds: number = MAX_QUIZ_ROUNDS,
   questionEntries?: readonly VocabularyEntry[],
+  buildOptions: QuizBuildOptions = {},
 ): QuizRound[] {
   const maxOptions = 4;
+  const difficulty = buildOptions.difficulty ?? "adaptive";
+  const confusionMatrix = buildOptions.confusionMatrix;
+  const retention = buildOptions.retention;
   const rounds: QuizRound[] = [];
   const targetQuestions =
     questionEntries && questionEntries.length > 0 ? questionEntries : entries;
 
-  // Distinct target strings (exact match, first-seen order) computed once from all entries:
-  // rebuilding this pool per question made large decks unusable (O(n^2) work
-  // per question). Filtering by the per-question forbidden set below yields
-  // exactly the same pool contents as the old nested loop.
-  const distinctTargets: { text: string; key: string }[] = [];
+  // Distinct target entries and normalized features computed once across all deck entries.
+  const distinctTargets: { entry: VocabularyEntry; key: string }[] = [];
   const seenTargets = new Set<string>();
+  const preparedById = new Map<string, PreparedEntryFeatures>();
   for (const entry of entries) {
     if (seenTargets.has(entry.target)) continue;
     seenTargets.add(entry.target);
     distinctTargets.push({
-      text: entry.target,
+      entry,
       key: entry.target.normalize("NFC").toLocaleLowerCase(),
     });
+    preparedById.set(entry.id, prepareEntryFeatures(entry));
   }
 
-  for (const entry of shuffle(targetQuestions, rng)) {
+  let orderedQuestions = shuffle(targetQuestions, rng);
+  if (buildOptions.prioritizeConfused && confusionMatrix && confusionMatrix.size > 0) {
+    orderedQuestions = [...orderedQuestions].sort(
+      (a, b) =>
+        getEntryConfusionTotal(confusionMatrix, b.id) -
+        getEntryConfusionTotal(confusionMatrix, a.id),
+    );
+  }
+
+  for (const entry of orderedQuestions) {
     const answer = entry.target;
     const forbidden = new Set(
       [answer, ...entry.alternatives].map((value) => value.normalize("NFC").toLocaleLowerCase()),
     );
 
-    const distractorPool: string[] = [];
-    for (const { text, key } of distinctTargets) {
+    const distractorCandidates: VocabularyEntry[] = [];
+    for (const { entry: cand, key } of distinctTargets) {
       if (forbidden.has(key)) continue;
-      distractorPool.push(text);
+      distractorCandidates.push(cand);
     }
 
-    const distractors = shuffle(distractorPool, rng).slice(0, maxOptions - 1);
+    const preparedQuestion = preparedById.get(entry.id) ?? prepareEntryFeatures(entry);
+    const { distractors, insights } = selectSmartDistractors(
+      entry,
+      distractorCandidates,
+      maxOptions - 1,
+      {
+        difficulty,
+        confusionMatrix,
+        retentionRecord: retention?.get(entry.id),
+        rng,
+        preparedQuestion,
+        preparedCandidates: preparedById,
+      },
+    );
     const options = shuffle([answer, ...distractors], rng);
     if (options.length < 2) continue; // not enough distinct options; skip, never fabricate
-    rounds.push({ entry, options, answer });
+    rounds.push({ entry, options, answer, distractorInsights: insights });
 
     if (rounds.length >= maxRounds) break;
   }

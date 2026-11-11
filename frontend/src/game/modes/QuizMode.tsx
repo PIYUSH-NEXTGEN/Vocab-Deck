@@ -1,6 +1,14 @@
 import { useCallback, useMemo, useEffect, useRef, useState } from "react";
 import type { PlayableDeck, VocabularyEntry } from "../../api/types";
 import { MAX_QUIZ_ROUNDS, buildQuizRounds } from "../engine";
+import {
+  formatDistractorReasons,
+  getConfusableEntryIds,
+  getPairConfusionCount,
+  getTopConfusedPairs,
+  type ConfusionMatrix,
+  type QuizDifficulty,
+} from "../distractors";
 import { parseBoundedCount } from "../roundSize";
 import { useSessionSeed } from "../useSessionSeed";
 import { pulse, rise, shake, useAnimationRegistry } from "../../lib/motion";
@@ -12,30 +20,60 @@ import { EmptyState } from "../../components/EmptyState";
 import { Panel } from "../../components/Panel";
 import { ProgressBar } from "../../components/ProgressBar";
 import { RoundSizeField } from "../../components/RoundSizeField";
+import { SegmentedControl } from "../../components/SegmentedControl";
+
+const DIFFICULTY_OPTIONS: { value: QuizDifficulty; label: string; hint: string }[] = [
+  { value: "standard", label: "Standard", hint: "broad contrast" },
+  { value: "adaptive", label: "Adaptive", hint: "matched to mastery" },
+  { value: "challenging", label: "Challenging", hint: "close lookalikes" },
+];
+
+type ReviewScope = "mistakes" | "confusions";
 
 /**
- * Multiple choice: one correct translation among distinct options built by the
- * engine (never fabricated). Supports keyboard shortcuts (1-4 to choose, Enter to
- * submit/advance) and targeted mistake review. Submissions are locked after the
- * first submit, so a round can be scored exactly once.
+ * Multiple choice: one correct translation among distinct smartly ranked options
+ * built by the engine (never fabricated). Supports adaptive/standard/challenging
+ * distractor difficulty, confusion-aware feedback, keyboard shortcuts (1-4 to
+ * choose, Enter to submit/advance), and targeted mistake/confusion review.
+ * Submissions are locked after the first submit, so a round scores once.
  */
 export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) {
-  const { recordQuizAnswer } = useSession();
+  const { confusionMatrix, recordQuizAnswer, retention } = useSession();
   const register = useAnimationRegistry();
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const { rng, reshuffle } = useSessionSeed(seed);
-  const [reviewMistakes, setReviewMistakes] = useState<VocabularyEntry[] | null>(null);
+  const [difficulty, setDifficulty] = useState<QuizDifficulty>("adaptive");
+  const [reviewState, setReviewState] = useState<{
+    scope: ReviewScope;
+    entries: VocabularyEntry[];
+  } | null>(null);
 
-  const allRounds = useMemo(
-    () => {
-      if (reviewMistakes && reviewMistakes.length > 0) {
-        return buildQuizRounds(deck.entries, rng, reviewMistakes.length, reviewMistakes);
-      }
-      return buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS);
-    },
-    [deck.entries, reviewMistakes, rng],
+  // Snapshot confusion & retention at round boundaries so in-flight questions remain stable
+  // while live feedback & the next round reflect every newly recorded mistake.
+  const [roundConfusionSnapshot, setRoundConfusionSnapshot] = useState<ConfusionMatrix>(
+    () => confusionMatrix,
   );
+  const [roundRetentionSnapshot, setRoundRetentionSnapshot] = useState(() => retention);
+
+  const allRounds = useMemo(() => {
+    const buildOptions = {
+      difficulty: reviewState?.scope === "confusions" ? "challenging" : difficulty,
+      confusionMatrix: roundConfusionSnapshot,
+      retention: roundRetentionSnapshot,
+      prioritizeConfused: reviewState?.scope === "confusions",
+    };
+    if (reviewState && reviewState.entries.length > 0) {
+      return buildQuizRounds(
+        deck.entries,
+        rng,
+        reviewState.entries.length,
+        reviewState.entries,
+        buildOptions,
+      );
+    }
+    return buildQuizRounds(deck.entries, rng, MAX_QUIZ_ROUNDS, undefined, buildOptions);
+  }, [deck.entries, difficulty, reviewState, rng, roundConfusionSnapshot, roundRetentionSnapshot]);
 
   const maxQuestions = allRounds.length;
   const [questionCount, setQuestionCount] = useState(maxQuestions);
@@ -66,6 +104,27 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     return map;
   }, [deck.entries]);
 
+  const resetRound = useCallback(
+    (
+      nextReview: { scope: ReviewScope; entries: VocabularyEntry[] } | null,
+      countOverride?: number,
+    ) => {
+      reshuffle();
+      setReviewState(nextReview);
+      if (countOverride !== undefined) {
+        setQuestionCount(countOverride);
+        setCountInput(String(countOverride));
+      }
+      setRoundConfusionSnapshot(confusionMatrix);
+      setRoundRetentionSnapshot(retention);
+      setRoundEvaluations(new Map());
+      setIndex(0);
+      setSelected(null);
+      setSubmitted(false);
+    },
+    [confusionMatrix, reshuffle, retention],
+  );
+
   const commitQuestionCount = useCallback(
     (raw: string) => {
       const parsed = parseBoundedCount(raw, maxQuestions);
@@ -78,16 +137,9 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
         setCountInput(String(parsed));
         return;
       }
-      setQuestionCount(parsed);
-      setCountInput(String(parsed));
-      setReviewMistakes(null);
-      setRoundEvaluations(new Map());
-      reshuffle();
-      setIndex(0);
-      setSelected(null);
-      setSubmitted(false);
+      resetRound(null, parsed);
     },
-    [maxQuestions, questionCount, reshuffle],
+    [maxQuestions, questionCount, resetRound],
   );
 
   useEffect(() => {
@@ -109,8 +161,9 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   const submit = useCallback(() => {
     if (submitted || selected === null || !round) return;
     const isCorrect = selected === round.answer;
+    const chosenEntryId = isCorrect ? undefined : round.distractorInsights?.[selected]?.entryId;
     setSubmitted(true);
-    recordQuizAnswer(isCorrect, round.entry.id);
+    recordQuizAnswer(isCorrect, round.entry.id, chosenEntryId);
     setRoundEvaluations((prev) => {
       const next = new Map(prev);
       next.set(round.entry.id, {
@@ -163,13 +216,17 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
   }, [finished, next, round, selected, submit, submitted]);
 
   const playAgain = useCallback(() => {
-    reshuffle();
-    setReviewMistakes(null);
-    setRoundEvaluations(new Map());
-    setIndex(0);
-    setSelected(null);
-    setSubmitted(false);
-  }, [reshuffle]);
+    resetRound(null);
+  }, [resetRound]);
+
+  const handleDifficultyChange = useCallback(
+    (nextDifficulty: QuizDifficulty) => {
+      if (nextDifficulty === difficulty) return;
+      setDifficulty(nextDifficulty);
+      resetRound(reviewState);
+    },
+    [difficulty, resetRound, reviewState],
+  );
 
   const missedItems = useMemo(
     () => Array.from(roundEvaluations.values()).filter((item) => !item.correct),
@@ -181,18 +238,31 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     [roundEvaluations],
   );
 
+  const topConfusedPairs = useMemo(
+    () => getTopConfusedPairs(confusionMatrix, deck.entries, 5),
+    [confusionMatrix, deck.entries],
+  );
+
+  const confusableEntries = useMemo(() => {
+    const ids = getConfusableEntryIds(confusionMatrix);
+    if (ids.length === 0) return [];
+    const byId = new Map(deck.entries.map((entry) => [entry.id, entry]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((entry): entry is VocabularyEntry => entry !== undefined);
+  }, [confusionMatrix, deck.entries]);
+
   const startMistakeReview = useCallback(() => {
     if (missedItems.length === 0) return;
     const mistakesToReview = missedItems.map((m) => m.entry);
-    reshuffle();
-    setReviewMistakes(mistakesToReview);
-    setQuestionCount(mistakesToReview.length);
-    setCountInput(String(mistakesToReview.length));
-    setRoundEvaluations(new Map());
-    setIndex(0);
-    setSelected(null);
-    setSubmitted(false);
-  }, [missedItems, reshuffle]);
+    resetRound({ scope: "mistakes", entries: mistakesToReview }, mistakesToReview.length);
+  }, [missedItems, resetRound]);
+
+  const startConfusionReview = useCallback(() => {
+    if (confusableEntries.length === 0) return;
+    setDifficulty("challenging");
+    resetRound({ scope: "confusions", entries: confusableEntries }, confusableEntries.length);
+  }, [confusableEntries, resetRound]);
 
   if (maxQuestions === 0) {
     return (
@@ -207,7 +277,13 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     return (
       <div ref={summaryRef}>
         <Panel className="stack summary">
-          <h3>{reviewMistakes ? "Review quiz complete" : "Quiz complete"}</h3>
+          <h3>
+            {reviewState?.scope === "confusions"
+              ? "Confusion practice complete"
+              : reviewState
+                ? "Review quiz complete"
+                : "Quiz complete"}
+          </h3>
           <p className="muted">
             You answered {roundEvaluations.size} questions this round: {correctCount} correct
             {missedItems.length > 0 ? `, ${missedItems.length} incorrect` : ""}.
@@ -239,17 +315,56 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
             </p>
           )}
 
+          {topConfusedPairs.length > 0 ? (
+            <div className="stack-tight confusion-section">
+              <span className="label">
+                Confusable word pairs this session ({topConfusedPairs.length}):
+              </span>
+              <ul className="confusion-list">
+                {topConfusedPairs.map((pair) => {
+                  const modes: string[] = [];
+                  if (pair.sources.quiz > 0) modes.push("Quiz");
+                  if (pair.sources.matching > 0) modes.push("Matching");
+                  return (
+                    <li
+                      key={`${pair.entryA.id}-${pair.entryB.id}`}
+                      className="confusion-item"
+                    >
+                      <span>
+                        <strong>{pair.entryA.source}</strong> ({pair.entryA.target}) ↔{" "}
+                        <strong>{pair.entryB.source}</strong> ({pair.entryB.target})
+                      </span>
+                      <span className="confusion-meta faint">
+                        {pair.total}×{modes.length > 0 ? ` (${modes.join(" & ")})` : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="row">
             {missedItems.length > 0 ? (
               <Button variant="primary" onClick={startMistakeReview}>
                 Review Missed Questions ({missedItems.length})
               </Button>
             ) : null}
+            {confusableEntries.length > 0 ? (
+              <Button
+                variant={missedItems.length === 0 ? "primary" : "secondary"}
+                onClick={startConfusionReview}
+              >
+                Practice Confused Words ({confusableEntries.length})
+              </Button>
+            ) : null}
             <Button
-              variant={missedItems.length > 0 ? "secondary" : "primary"}
+              variant={
+                missedItems.length > 0 || confusableEntries.length > 0 ? "secondary" : "primary"
+              }
               onClick={playAgain}
             >
-              {reviewMistakes ? "Back to full deck" : "Play again"}
+              {reviewState ? "Back to full deck" : "Play again"}
             </Button>
           </div>
         </Panel>
@@ -257,13 +372,21 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
     );
   }
 
+  const selectedInsight =
+    submitted && selected && round && selected !== round.answer
+      ? round.distractorInsights?.[selected]
+      : undefined;
+  const livePairConfusionCount = selectedInsight
+    ? getPairConfusionCount(confusionMatrix, round.entry.id, selectedInsight.entryId)
+    : 0;
+
   return (
     <div className="stack">
       <div className="row row-space round-controls">
         <span className="label">
-          {reviewMistakes ? "Review Question" : "Question"} {index + 1} of {rounds.length}
+          {reviewState ? "Review Question" : "Question"} {index + 1} of {rounds.length}
         </span>
-        {!reviewMistakes ? (
+        {!reviewState ? (
           <RoundSizeField
             id="quiz-question-count"
             label="Questions"
@@ -330,6 +453,15 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
                 ? `Correct. ${fullTranslation(round.entry)}`
                 : `Not quite. "${fullTranslation(round.entry)}" is the translation.`}
             </p>
+            {selectedInsight ? (
+              <p className="quiz-confusion-insight">
+                You chose <strong>{selectedInsight.target}</strong> ({selectedInsight.source})
+                {livePairConfusionCount > 0 ? ` — confused ${livePairConfusionCount}× this session` : ""}
+                {selectedInsight.reasons.length > 0 ? (
+                  <span className="faint"> · {formatDistractorReasons(selectedInsight.reasons)}</span>
+                ) : null}
+              </p>
+            ) : null}
             <div className="row">
               <Button variant="primary" onClick={next}>
                 {index + 1 >= rounds.length ? "See results" : "Next question"}{" "}
@@ -345,6 +477,16 @@ export function QuizMode({ deck, seed }: { deck: PlayableDeck; seed?: number }) 
             {selected === null ? <span className="faint">Select an option (or press 1-{round.options.length}).</span> : null}
           </div>
         )}
+      </div>
+
+      <div className="quiz-settings stack-tight">
+        <span className="label">Distractor difficulty</span>
+        <SegmentedControl<QuizDifficulty>
+          ariaLabel="Distractor difficulty"
+          value={difficulty}
+          onChange={handleDifficultyChange}
+          options={DIFFICULTY_OPTIONS}
+        />
       </div>
     </div>
   );
